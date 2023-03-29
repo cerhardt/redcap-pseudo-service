@@ -1,0 +1,293 @@
+{
+	"name": "PseudoService",
+
+	"namespace": "meDIC\\PseudoService",
+
+	"description": "Pseudonymization and Depseudonymization with E-PIX/gPAS",
+
+	"documentation": "README.md",
+
+	"authors": [		{
+			"name": "Christian Erhardt",
+			"email": "christian.erhardt@uni-tuebingen.de",
+			"institution": "meDIC / Hertie Institute for Clinical Brain Research, University Hospital Tübingen"
+		}
+	],
+
+	"permissions": [
+        "hook_data_entry_form_top"
+	],
+	
+	"enable-every-page-hooks-on-system-pages":false,	
+
+	"links": {
+        "project": [
+            {
+                "name": "Pseudonyme",
+                "icon": "key",
+                "url": "index.php",
+                "show-header-and-footer": false
+            }
+        ],
+		"control-center": [
+		]
+	},
+
+	"no-auth-pages": [
+	],
+
+	"project-settings": [
+        {
+            "key": "gpas_domain",
+            "name": "gPAS domain",
+            "required": true,
+            "super-users-only": true,
+            "type": "text"
+        },
+        {
+            "key": "extern",
+            "name": "use external probands",
+            "super-users-only": true,
+            "type": "checkbox"
+        },
+        {
+           "key": "cust-vars-list",
+           "name": "additional fields",
+           "required": false,
+           "type": "sub_settings",
+           "repeatable":true,
+           "branchingLogic": {
+              "conditions": [
+                  {
+                      "field": "extern",
+                      "value": "true"
+                  }
+              ]            
+           },
+           "sub_settings":[
+              {
+                 "key": "custom_field",
+                 "name": "custom field",
+                 "required": false,
+                  "type": "dropdown",
+                  "choices": [
+                    {
+                      "value": 1,
+                      "name": "value1"
+                    },
+                    {
+                      "value": 2,
+                      "name": "value2"
+                    },
+                    {
+                      "value": 3,
+                      "name": "value3"
+                    },
+                    {
+                      "value": 4,
+                      "name": "value4"
+                    },
+                    {
+                      "value": 5,
+                      "name": "value5"
+                    },
+                    {
+                      "value": 6,
+                      "name": "value6"
+                    },
+                    {
+                      "value": 7,
+                      "name": "value7"
+                    },
+                    {
+                      "value": 8,
+                      "name": "value8"
+                    },
+                    {
+                      "value": 9,
+                      "name": "value9"
+                    },
+                    {
+                      "value": 10,
+                      "name": "value10"
+                    }
+                  ]
+              },
+              {
+                 "key": "custom_label",
+                 "name": "custom label",
+                 "required": false,
+                 "type": "text"
+              }
+           ]
+          },
+          {
+            "key": "extpsn",
+            "name": "use external pseudonyms (extPSN)",
+            "super-users-only": true,
+            "type": "checkbox"
+        },
+        {
+            "key": "extpsn_prefix",
+            "name": "extPSN: prefix",
+            "type": "text",
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "extpsn",
+                "value": "true"
+            }
+        },
+        {
+            "key": "extpsn_field",
+            "name": "extPSN: field to store pseudonym",
+            "type": "field-list",
+            "autocomplete": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "extpsn",
+                "value": "true"
+            }
+        },
+        {
+            "key": "extpsn_event",
+            "name": "extPSN: event to store pseudonym",
+            "type": "event-list",
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "extpsn",
+                "value": "true"
+            }
+        },
+        {
+            "key": "maxcnt",
+            "name": "max. search hits",
+            "required": false,
+            "type": "text"
+        }
+
+	],
+
+	"system-settings": [
+        {
+            "key": "allowed_domain",
+            "name": "allowed REDCap domain",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "client_id",
+            "name": "OAuth2 Client ID",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "secret",
+            "name": "OAuth2 Cient secret",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "gpas_url",
+            "name": "gPAS API URL",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "gpas_scope",
+            "name": "gPAS Scope",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "gpas_domain_url",
+            "name": "gPAS Domain API URL",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "gpas_domain_scope",
+            "name": "gPAS Domain Scope",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "epix_url",
+            "name": "E-PIX API URL",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "epix_scope",
+            "name": "E-PIX Scope",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "epix_domain",
+            "name": "E-PIX Domain",
+            "required": true,
+            "branchingLogic": {
+                "field": "epix_url",
+                 "op": "<>",
+                 "value": ""
+            }
+        },
+        {
+            "key": "epix_safe_source",
+            "name": "E-PIX safe source",
+            "required": true,
+            "branchingLogic": {
+                "field": "epix_url",
+                 "op": "<>",
+                 "value": ""
+            }
+        },
+        {
+            "key": "epix_external_source",
+            "name": "E-PIX external source",
+            "required": true,
+            "branchingLogic": {
+                "field": "epix_url",
+                 "op": "<>",
+                 "value": ""
+            }
+        },
+        {
+            "key": "epix_id_domain",
+            "name": "E-PIX ID Domain",
+            "required": true,
+            "branchingLogic": {
+                "field": "epix_url",
+                 "op": "<>",
+                 "value": ""
+            }
+        },
+        {
+            "key": "sap_url",
+            "name": "SAP API URL",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "sap_scope",
+            "name": "SAP Scope",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "use_proxy",
+            "name": "use proxy",
+            "type": "checkbox"
+        }
+	],
+
+	"crons": [
+	],
+
+	"compatibility": {
+		"php-version-min": "",
+		"php-version-max": "",
+		"redcap-version-min": "",
+		"redcap-version-max": ""
+	}
+}
