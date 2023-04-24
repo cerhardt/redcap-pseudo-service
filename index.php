@@ -545,6 +545,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                                   $aCSV[$i]['error'] = $oPseudoService->getError();
                                   continue;
                               }
+                              $aCSV[$i]['psn'] = $sPSN;
                           }
 
                           $aCSV[$i]['imported'] = "OK";
@@ -643,6 +644,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                               $aCSV[$i]['error'] = $oPseudoService->getError();
                               continue;
                           }
+                          $aCSV[$i]['psn'] = $sPSN;
                       }
                       
                       $aCSV[$i]['imported'] = "OK";
