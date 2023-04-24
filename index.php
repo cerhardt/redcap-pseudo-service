@@ -509,15 +509,18 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
               $aCSV = array();
               foreach($aImport as $i => $aRow) {
   
-                  // only process rows with psn
-                  if (strlen($aRow['psn']) == 0) continue;
+                  // create or import psn?
+                  $sPSN_mode = 'import';
+                  if (strlen($aRow['psn']) == 0) {
+                      $sPSN_mode = 'create';
+                  }
                   
                   $aCSV[$i] = $aRow;
                   $aCSV[$i]['imported'] = '';
                   $aCSV[$i]['error'] = '';
                   
-                  // validate PSNs
-                  if (!$oPseudoService->validatePSN($aRow['psn'])) {
+                  // import PSNs: validate PSNs
+                  if (!$oPseudoService->validatePSN($aRow['psn']) && $sPSN_mode == 'import') {
                       $aCSV[$i]['error'] = $oPseudoService->getError();
                       continue;
                   }
@@ -528,14 +531,27 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$aRow['extPSN']);
                       if (!$mEpixResult) {
                           // create new value -> psn pair
-                          if (!$oPseudoService->insertValuePseudonymPair($module->getProjectSetting("extpsn_prefix").$aRow['extPSN'], $aRow['psn'])) {
-                              $aCSV[$i]['error'] = $oPseudoService->getError();
-                              continue;
+                          if ($sPSN_mode == 'import') {
+                              $sPSN = $aRow['psn'];
+                              if (!$oPseudoService->insertValuePseudonymPair($module->getProjectSetting("extpsn_prefix").$aRow['extPSN'], $sPSN)) {
+                                  $aCSV[$i]['error'] = $oPseudoService->getError();
+                                  continue;
+                              }
                           }
-                          Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extPS'].": ".$oPseudoService->trimZero($aRow['psn']), "extPSN: psn created");
+                          // create new psn
+                          if ($sPSN_mode == 'create') {
+                              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$_POST['extPSN']);
+                              if (!$sPSN) {
+                                  $aCSV[$i]['error'] = $oPseudoService->getError();
+                                  continue;
+                              }
+                          }
+
                           $aCSV[$i]['imported'] = "OK";
+                          Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extPSN'].": ".$oPseudoService->trimZero($sPSN), "extPSN: psn created");
+
                           // create REDCap entry
-                          if (!$oPseudoService->createREDCap($aRow['psn'], $aRow['extPSN'])) {
+                          if (!$oPseudoService->createREDCap($sPSN, $aRow['extPSN'])) {
                               $aCSV[$i]['error'] = $oPseudoService->getError();
                           }
                       } else {
@@ -559,7 +575,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   }
 
                   // convert gender labels to keys
-                  if (!isset($oPseudoService->aGender[$aRow['gender']])) {
+                  if (strlen($aRow['gender']) > 0 && !isset($oPseudoService->aGender[$aRow['gender']])) {
                       $sGender = array_search($aRow['gender'], $oPseudoService->aGender, true);
                       if ($sGender !== false) {
                           $aRow['gender'] = $sGender;
@@ -570,8 +586,8 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   }
 
                   // external probands: create PSN
-                  if ($module->getProjectSetting("extern") === true) {
-                      if (strlen($aRow['firstName']) > 0 && 
+                  if ($module->getProjectSetting("extern") === true && 
+                        strlen($aRow['firstName']) > 0 && 
                         strlen($aRow['lastName']) > 0 && 
                         strlen($aRow['gender']) > 0 &&
                         strlen($aRow['birthDate']) > 0 &&
@@ -579,77 +595,68 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                         strlen($aRow['SAP-ID']) == 0) {
                       
                         $aResult = $oPseudoService->requestMPI($aRow);
-                      
-                        // PERFECT_MATCH = Vorhanden, NO_MATCH = nicht vorhanden, POSSIBLE_MATCH = evtl. doppelt
-                        $matchStatus = $aResult['return']['matchStatus'];
-                        $mpiId_create = $aResult['return']['person']['mpiId']['value'];
-                        /*
-                        if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
-                            Logging::logEvent('', $module->getModuleName(), "OTHER", '', $mpiId_create, "MPI created");
-                        } 
-                        */ 
-                        // does psn already exist?
-                        $sPSNTmp = $oPseudoService->getPseudonymFor($mpiId_create);
-                        if (!$sPSNTmp) {
-                            // create new value -> psn pair
-                            if (!$oPseudoService->insertValuePseudonymPair($mpiId_create, $aRow['psn'])) {
-                                $aCSV[$i]['error'] = $oPseudoService->getError();
-                                continue;
-                            } else {
-                                $aCSV[$i]['imported'] = "OK";
-                                Logging::logEvent('', $module->getModuleName(), "OTHER", '', $oPseudoService->trimZero($aRow['psn']), "PSN created");
-                                // create REDCap entry
-                                if (!$oPseudoService->createREDCap($aRow['psn'])) {
-                                    $aCSV[$i]['error'] = $oPseudoService->getError();
-                                }
-                            }
-                        } else {
-                          $aCSV[$i]['error'] = "Dieses Pseudonym existiert bereits!";
+                        if (!is_array($aResult)) {
+                            $aCSV[$i]['error'] = $oPseudoService->getError();
+                            continue;
                         }
-                        continue;
-                      } 
-                  }  
-              
-                  
-                  // probands from SAP
-                  if (strlen($aRow['SAP-ID']) > 0) {
+                      
+                  }  elseif (strlen($aRow['SAP-ID']) > 0) {
+                      // probands from SAP
                       $ishId = ltrim($aRow['SAP-ID'],'0');
                       if ($oSAPPatientSearch->getlogin()) {
+
                           // create / get MPI with SAP-ID
                           $aResult = $oSAPPatientSearch->requestMPI_SAP($ishId, $aRow);
-                          if (is_array($aResult)) {
-                              $matchStatus = $aResult['return']['matchStatus'];
-                              $mpiId_create = $aResult['return']['person']['mpiId']['value'];
-                              /*
-                              if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
-                                  Logging::logEvent('', $module->getModuleName(), "OTHER", '', $mpiId_create, "MPI created");
-                              } 
-                              */ 
-                              // does psn already exist?
-                              $sPSNTmp = $oPseudoService->getPseudonymFor($mpiId_create);
-                              if (!$sPSNTmp) {
-                                  // create new value -> psn pair
-                                  if (!$oPseudoService->insertValuePseudonymPair($mpiId_create, $aRow['psn'])) {
-                                      $aCSV[$i]['error'] = $oPseudoService->getError();
-                                      continue;
-                                  } else {
-                                      Logging::logEvent('', $module->getModuleName(), "OTHER", '', $oPseudoService->trimZero($aRow['psn']), "PSN created");
-                                      $aCSV[$i]['imported'] = "OK";
-                                      // create REDCap entry
-                                      if (!$oPseudoService->createREDCap($aRow['psn'])) {
-                                          $aCSV[$i]['error'] = $oPseudoService->getError();
-                                      }
-                                  }
-                              } else {
-                                $aCSV[$i]['error'] = "Dieses Pseudonym existiert bereits!";
-                              }
-                          } else {
-                                $aCSV[$i]['error'] = "SAP-ID unbekannt!";
+                          if (!is_array($aResult)) {
+                              $aCSV[$i]['error'] = $oSAPPatientSearch->getError();
+                              continue;
                           }
-                          continue;
                       }
+                  } else {
+                      // nothing to do
+                      continue;
                   }          
-              }
+
+              
+                  $matchStatus = $aResult['return']['matchStatus'];
+                  $mpiId_create = $aResult['return']['person']['mpiId']['value'];
+                  /*
+                  if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
+                      Logging::logEvent('', $module->getModuleName(), "OTHER", '', $mpiId_create, "MPI created");
+                  } 
+                  */ 
+                  // does psn already exist?
+                  $sPSNTmp = $oPseudoService->getPseudonymFor($mpiId_create);
+                  if (!$sPSNTmp) {
+                      // create new value -> psn pair
+                      if ($sPSN_mode == 'import') {
+                          $sPSN = $aRow['psn'];
+                          if (!$oPseudoService->insertValuePseudonymPair($mpiId_create, $sPSN)) {
+                              $aCSV[$i]['error'] = $oPseudoService->getError();
+                              continue;
+                          } 
+                      }
+                      // create new psn
+                      if ($sPSN_mode == 'create') {
+                          $sPSN = $oPseudoService->getOrCreatePseudonymFor($mpiId_create);
+                          if (!$sPSN) {
+                              $aCSV[$i]['error'] = $oPseudoService->getError();
+                              continue;
+                          }
+                      }
+                      
+                      $aCSV[$i]['imported'] = "OK";
+                      Logging::logEvent('', $module->getModuleName(), "OTHER", '', $oPseudoService->trimZero($sPSN), "PSN created");
+
+                      // create REDCap entry
+                      if (!$oPseudoService->createREDCap($sPSN)) {
+                          $aCSV[$i]['error'] = $oPseudoService->getError();
+                      }
+                  } else {
+                    $aCSV[$i]['error'] = "Diese Person existiert bereits!";
+                  }
+              
+              } // end foreach import row
 
               if (count($aCSV) > 0) {
                   // output csv file
@@ -667,7 +674,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   Logging::logEvent('', $module->getModuleName(), "OTHER", '', '', "import");
                   exit;
               } else {
-                  $oPseudoService->setError('Keine Studienpseudonyme gefunden!');
+                  $oPseudoService->setError('Bitte überprüfen Sie die Importdatei!');
               }
           
           } //is_uploaded_file
