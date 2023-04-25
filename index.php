@@ -475,7 +475,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
         $output = fopen("php://output",'w') or die("Can't open php://output");
         fwrite($output, "\xEF\xBB\xBF");
       	header("Content-Type:application/csv"); 
-      	header("Content-Disposition:attachment;filename=psn_export.csv"); 
+      	header("Content-Disposition:attachment;filename=psn_export_".$module->getProjectSetting("gpas_domain")."_".date("Ymd_His").".csv"); 
       	fputcsv($output, array_keys($aHeader), ";");
       	foreach($aCSV as $row) {
           $Vals = array();
@@ -548,7 +548,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                               $aCSV[$i]['psn'] = $sPSN;
                           }
 
-                          $aCSV[$i]['imported'] = "OK";
+                          $aCSV[$i]['imported'] = $sPSN_mode;
                           Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extPSN'].": ".$oPseudoService->trimZero($sPSN), "extPSN: psn created");
 
                           // create REDCap entry
@@ -647,7 +647,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                           $aCSV[$i]['psn'] = $sPSN;
                       }
                       
-                      $aCSV[$i]['imported'] = "OK";
+                      $aCSV[$i]['imported'] = $sPSN_mode;
                       Logging::logEvent('', $module->getModuleName(), "OTHER", '', $oPseudoService->trimZero($sPSN), "PSN created");
 
                       // create REDCap entry
@@ -666,7 +666,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   $output = fopen("php://output",'w') or die("Can't open php://output");
                   fwrite($output, "\xEF\xBB\xBF");
                   header("Content-Type:application/csv"); 
-                  header("Content-Disposition:attachment;filename=psn_import_result.csv"); 
+                  header("Content-Disposition:attachment;filename=psn_import_".$module->getProjectSetting("gpas_domain")."_".date("Ymd_His").".csv"); 
                   fputcsv($output, $aHeader, ";");
                   foreach($aCSV as $row) {
                     fputcsv($output,$row, ";");
