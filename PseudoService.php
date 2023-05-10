@@ -33,8 +33,11 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->sap_url = $this->getSystemSetting("sap_url");
         $this->sap_scope = $this->getSystemSetting("sap_scope");
         
+        // module index URL
+        $this->moduleIndex = $this->replaceHost($this->getUrl('index.php'));        
+
         // callback URL
-        $this->callbackUrl = $this->getUrl('index.php');
+        $this->callbackUrl = $this->moduleIndex;
 
         // API Authentication
         $this->client_id = $this->getSystemSetting("client_id");    // The client ID assigned to you by the provider
@@ -342,7 +345,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if (!PseudoService::isAllowed('search')) {
             return false;
         }
-        return true;
+
+        $link['url'] = $this->replaceHost($link['url']);
+        return $link;
     }
 
     public function getError() {
@@ -441,6 +446,23 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         return $data;
     }
 
+    /**
+    * replace host in URLs if "allowed_domain" differs from redcap_base_url in REDCap settings
+    *
+    * @author  Christian Erhardt
+    * @param string $sUrl
+    * @access  private
+    * @return string 
+    */
+    private function replaceHost($sUrl) {
+        if (strlen($this->getSystemSetting("allowed_domain")) > 0) {
+            if (strpos($sUrl, $this->getSystemSetting("allowed_domain")) === false) {
+                $host = parse_url($GLOBALS['redcap_base_url'], PHP_URL_HOST);
+                $sUrl = str_replace($host, $this->getSystemSetting("allowed_domain"),$sUrl);
+            }
+        }
+        return $sUrl;    
+    }
 }
 
 if (!function_exists('array_to_xml')) {

@@ -261,7 +261,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                 } else {
                     $_SESSION[$oPseudoService->session]['msg'] = 'Die Personendaten wurden aktualisiert!';
                 }
-                redirect($module->getUrl('index.php'));
+                redirect($module->moduleIndex);
             }
             
             if (is_array($aResult)) {
@@ -727,7 +727,7 @@ if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] !=
                         } else {
                             $_SESSION[$oPseudoService->session]['msg'] = 'Die Personendaten wurden aktualisiert!';
                         }
-                        redirect($module->getUrl('index.php'));
+                        redirect($module->moduleIndex);
                     }
 
                     if (is_array($aResult)) {
@@ -860,31 +860,31 @@ if (PseudoService::isAllowed('search')) {
       <ul class="nav nav-pills">
         <li class="nav-item">
           <?php if ($sMode == 'search') { ?>
-          <a class="nav-link active" aria-current="page" href="<?php echo ($module->getUrl('index.php')); ?>">Suche</a>
+          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
           <?php } ?>
           <?php if ($sMode == 'create' && $_GET['edit'] != '1') { ?>
-          <a class="nav-link active" aria-current="page" href="<?php echo ($module->getUrl('index.php')); ?>">Anlegen</a>
+          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Anlegen</a>
           <?php } ?>
           <?php if ($sMode == 'create' && $_GET['edit'] == '1') { ?>
-          <a class="nav-link active" aria-current="page" href="<?php echo ($module->getUrl('index.php')); ?>">Bearbeiten</a>
+          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Bearbeiten</a>
           <?php } ?>
           <?php if ($sMode != 'create' && $sMode != 'search') { ?>
-          <a class="nav-link" href="<?php echo ($module->getUrl('index.php')); ?>">Suche</a>
+          <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
           <?php } ?>
         </li>
 <?php   if (PseudoService::isAllowed('edit')) { ?>
         <li class="nav-item">
-          <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->getUrl('index.php')); ?>&mode=dubletten">Dubletten</a>
+          <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
         </li>
 <?php   } ?>
 <?php   if (PseudoService::isAllowed('export')) { ?>
         <li class="nav-item">
-          <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->getUrl('index.php')); ?>&mode=export">Export</a>
+          <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=export">Export</a>
         </li>
 <?php   } ?>
 <?php   if (PseudoService::isAllowed('import')) { ?>
         <li class="nav-item">
-          <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->getUrl('index.php')); ?>&mode=import">Import</a>
+          <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
         </li>
 <?php   } ?>
       </ul><br />
@@ -911,7 +911,7 @@ if (PseudoService::isAllowed('search')) {
     // ================================================================================================
     if ($sMode == 'search') { ?>
           <h5>Probanden suchen</h5>
-          <form style="max-width:700px;" method="post" action="<?php echo ($module->getUrl('index.php')); ?>">
+          <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
           <div class="form-group row">
             <label for="ish_id" class="col-sm-2 col-form-label">SAP-ID</label>
             <div class="col-sm-5">
@@ -1040,7 +1040,7 @@ if ($sMode == 'create'
         print("<h5>Probanden anlegen</h5>");
     }
     ?>
-      <form method="post" action="<?php echo ($module->getUrl('index.php')); ?>">
+      <form method="post" action="<?php echo ($module->moduleIndex); ?>">
 <?php 
     $sDis = '';
     if (strlen($iISH_ID_ENC) > 0) {
@@ -1175,7 +1175,7 @@ if (is_array($module->getProjectSetting("cust-vars-list"))) {
     if ($module->getProjectSetting("extpsn") === true && strlen($iISH_ID_ENC) == 0 && strlen($iMPI_ID_ENC) == 0) { ?>
        <!-- externes Pseudonym -->
       <h5>externes Pseudonym anlegen</h5>
-      <form method="post" action="<?php echo ($module->getUrl('index.php')); ?>">
+      <form method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
         <label for="extPS" class="col-sm-2 col-form-label">externes Pseudonym</label>
         <div class="col-sm-5">
@@ -1197,7 +1197,7 @@ if (is_array($module->getProjectSetting("cust-vars-list"))) {
 // ================================================================================================
 if ($sMode == 'export' && PseudoService::isAllowed('export')) { ?>
       <h5>Liste exportieren</h5>
-      <form style="max-width:700px;" method="post" action="<?php echo ($module->getUrl('index.php')); ?>">
+      <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
         <div class="col-sm-5">
           <label for="psn_filter">Studienpseudonyme (optional):</label>
@@ -1218,7 +1218,7 @@ if ($sMode == 'export' && PseudoService::isAllowed('export')) { ?>
 // ================================================================================================
 if ($sMode == 'import' && PseudoService::isAllowed('import')) { ?>
       <h5>Liste importieren</h5>
-      <form style="max-width:700px;" enctype="multipart/form-data" method="post" action="<?php echo ($module->getUrl('index.php')); ?>">
+      <form style="max-width:700px;" enctype="multipart/form-data" method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
         <div class="col-sm-5">
             <label for="file_upload">CSV-Datei (mit ";" getrennt)</label>
@@ -1291,7 +1291,7 @@ function confirmDelete(mpi) {
   	$('#confirmDelete').dialog({ bgiframe: true, modal: true, width: 400, buttons: {
   		Cancel: function() { $(this).dialog('close'); },
   		'Delete': function () {
-              window.location.href = '<?=$oPseudoService->getUrl('index.php').'&mode=delete&'?>' + mpi;
+              window.location.href = '<?=$oPseudoService->moduleIndex.'&mode=delete&'?>' + mpi;
   		}
   	} });
 }
@@ -1375,9 +1375,9 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
 
             if (strlen($aData['mpiid']) > 0) {
                 $mpi_url = http_build_query(["mpiid_enc" => encrypt($aData['mpiid'],$_SESSION[$oPseudoService->session]['enckey'])]);
-                $sJumpTD = '<td><a href="'.$module->getUrl('index.php').'&'.$mpi_url.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>';
+                $sJumpTD = '<td><a href="'.$module->moduleIndex.'&'.$mpi_url.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>';
                 if ($aData['edit'] == true && PseudoService::isAllowed('edit')) {
-                    $sEdTD = '<td><a href="'.$module->getUrl('index.php').'&'.$mpi_url.'&mode=create&edit=1">'.RCView::fa('fa-solid fa-user-pen').'</a></td>';
+                    $sEdTD = '<td><a href="'.$module->moduleIndex.'&'.$mpi_url.'&mode=create&edit=1">'.RCView::fa('fa-solid fa-user-pen').'</a></td>';
                 }
 
                 // delete REDCap data entry / psn / person
@@ -1389,9 +1389,9 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
             if (strlen($aData['ish_id']) > 0) {
                 $ish_url = http_build_query(["ish_id_enc" => encrypt($aData['ish_id'],$_SESSION[$oPseudoService->session]['enckey'])]);
                 $sIdTD = '<td>'.$aData['ish_id'].'</td>';
-                $sJumpTD = '<td><a href="'.$module->getUrl('index.php').'&'.$ish_url.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>';
+                $sJumpTD = '<td><a href="'.$module->moduleIndex.'&'.$ish_url.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>';
                 if ($aData['edit'] == true && PseudoService::isAllowed('edit')) {
-                    $sEdTD = '<td><a href="'.$module->getUrl('index.php').'&'.$ish_url.'&'.$mpi_url.'&mode=create&edit=1">'.RCView::fa('fa-solid fa-user-pen').'</a></td>';
+                    $sEdTD = '<td><a href="'.$module->moduleIndex.'&'.$ish_url.'&'.$mpi_url.'&mode=create&edit=1">'.RCView::fa('fa-solid fa-user-pen').'</a></td>';
                 }
             }
             
@@ -1461,7 +1461,7 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit')) {
       }
 
       print ('
-      <form style="max-width:700px;" method="post" action="'.$module->getUrl('index.php').'">      
+      <form style="max-width:700px;" method="post" action="'.$module->moduleIndex.'">      
       <table class="table table-hover" style="max-width:700px;" id="dubletten-table">
           <thead>
             <tr>
@@ -1574,7 +1574,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
       && PseudoService::isAllowed('create')) {
 
       echo ('<br />&nbsp;<br />');
-      print('<a href="'.$module->getUrl('index.php').'&mode=create">Neuen Probanden anlegen</a>');
+      print('<a href="'.$module->moduleIndex.'&mode=create">Neuen Probanden anlegen</a>');
 
   }
 }

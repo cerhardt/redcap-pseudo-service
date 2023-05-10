@@ -54,7 +54,7 @@ class EPIX_gPAS extends PseudoService {
         // not logged in? => return
         if (!$this->getlogin()) {
             $_SESSION[$this->session]['redirect'] = $_SERVER['QUERY_STRING'];        
-            printf ($this->idatwrap, 'Bitte in TEIS <a href="'.$this->getUrl('index.php').'">anmelden</a> zur Anzeige der IDAT');
+            printf ($this->idatwrap, 'Bitte in TEIS <a href="'.$this->moduleIndex.'">anmelden</a> zur Anzeige der IDAT');
             return;
         }
         
