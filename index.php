@@ -183,7 +183,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                     // skip probands with no psn in project
                     if (!$bPSNInProject) continue;
     
-                    // add MPI to SAP search results
+                    // also in SAP results: add MPI to SAP search results and skip
                     if (count($aISH_IDs) === 1 && isset($aEpixResult[$aISH_IDs[0]])) {
                         $aEpixResult[$aISH_IDs[0]]['mpiid'] = $mpiId;
                         
@@ -191,18 +191,16 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                         if (strlen($module->getProjectSetting("custom_field")[0]) > 0) {
                             $aEpixResult[$aISH_IDs[0]]['edit'] = true;
                         } 
+                        continue;
                     } 
 
-                    // skip probands with ISH-ID if user has create access
-                    if (PseudoService::isAllowed('create') && count($aISH_IDs) > 0) continue;
-                    
                     $sKey = 'idx'.$i;
                     $aTmp = explode("T",$aRefIdentity['birthDate']);
                     $aEpixResult[$sKey]['mpiid'] = $mpiId;
                     $aEpixResult[$sKey]['name'] = $aRefIdentity['lastName'];
                     $aEpixResult[$sKey]['vorname'] = $aRefIdentity['firstName'];
                     $aEpixResult[$sKey]['gebdat'] = $aTmp[0];
-                    if (!$bOtherProjects) {
+                    if (!$bOtherProjects && count($aISH_IDs) == 0) {
                         $aEpixResult[$sKey]['edit'] = true;
                     }
     
@@ -916,6 +914,12 @@ if (PseudoService::isAllowed('search')) {
             <label for="ish_id" class="col-sm-2 col-form-label">SAP-ID</label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="ish_id" name="ish_id" value="<?php echo $_POST['ish_id']; ?>">
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="firstName" class="col-sm-2 col-form-label">Vorname</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $_POST['firstName']; ?>">
             </div>
           </div>
           <div class="form-group row">

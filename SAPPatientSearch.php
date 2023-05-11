@@ -54,6 +54,12 @@ class SAPPatientSearch extends PseudoService {
                 $requestArray['FILTER_LAST_NAME_PAT'] .= '*';
             }
         }
+        if (strlen($paPerson['firstName']) > 0) {
+            $requestArray['FILTER_FRST_NAME_PAT'] = $paPerson['firstName'];
+            if (substr($requestArray['FILTER_FRST_NAME_PAT'],-1) != '*') {
+                $requestArray['FILTER_FRST_NAME_PAT'] .= '*';
+            }
+        }
         if (strlen($paPerson['birthDate']) > 0) {
             $requestArray['FILTER_DOB_FROM'] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
             $requestArray['FILTER_DOB_TO'] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');

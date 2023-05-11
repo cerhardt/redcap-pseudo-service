@@ -160,6 +160,9 @@ class EPIX_gPAS extends PseudoService {
         if (strlen($paPerson['lastName']) > 0) {
             $requestArray['searchMask']['identity']['lastName'] = rtrim($paPerson['lastName'],"*");
         }
+        if (strlen($paPerson['firstName']) > 0) {
+            $requestArray['searchMask']['identity']['firstName'] = rtrim($paPerson['firstName'],"*");
+        }
         try {
             $result = $this->SoapCall("epix",$requestArray);
         } catch (\Exception $e) {
