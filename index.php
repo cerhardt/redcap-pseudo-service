@@ -184,7 +184,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                     if (!$bPSNInProject) continue;
     
                     // also in SAP results: add MPI to SAP search results and skip
-                    if (count($aISH_IDs) === 1 && isset($aEpixResult[$aISH_IDs[0]])) {
+                    if (count($aISH_IDs) > 0 && isset($aEpixResult[$aISH_IDs[0]])) {
                         $aEpixResult[$aISH_IDs[0]]['mpiid'] = $mpiId;
                         
                         // edit custom vars of persons with ISH-ID
@@ -197,6 +197,9 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                     $sKey = 'idx'.$i;
                     $aTmp = explode("T",$aRefIdentity['birthDate']);
                     $aEpixResult[$sKey]['mpiid'] = $mpiId;
+                    if (count($aISH_IDs) > 0) {
+                        $aEpixResult[$sKey]['ish_id'] = $aISH_IDs[0];
+                    }
                     $aEpixResult[$sKey]['name'] = $aRefIdentity['lastName'];
                     $aEpixResult[$sKey]['vorname'] = $aRefIdentity['firstName'];
                     $aEpixResult[$sKey]['gebdat'] = $aTmp[0];

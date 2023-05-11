@@ -128,7 +128,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
             $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
             return (true);
-		}
+        }
 
         // If we don't have an authorization code then get one
         if (!isset($_GET['code'])) {
