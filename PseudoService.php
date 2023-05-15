@@ -245,15 +245,15 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // user is authenticated, but has the wrong scope
         if ($curl_info['http_code'] == '401') {
-          throw new \Exception('Anmeldung fehlgeschlagen!');
+          throw new \Exception(strtoupper($psService).': Anmeldung fehlgeschlagen!');
         } 
         if ($curl_info['http_code'] == '403') {
-          throw new \Exception('Sie haben keine Berechtigung!');
+          throw new \Exception(strtoupper($psService).': keine Berechtigung!');
         } 
 
         // curl error
         if ($err) {
-          throw new \Exception($err);
+          throw new \Exception(strtoupper($psService).': '.$err);
         } 
 
         // convert xml to array

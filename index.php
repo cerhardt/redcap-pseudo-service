@@ -198,7 +198,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                     $aTmp = explode("T",$aRefIdentity['birthDate']);
                     $aEpixResult[$sKey]['mpiid'] = $mpiId;
                     if (count($aISH_IDs) > 0) {
-                        $aEpixResult[$sKey]['ish_id'] = $aISH_IDs[0];
+                        $aEpixResult[$sKey]['ish_id_epix'] = $aISH_IDs[0];
                     }
                     $aEpixResult[$sKey]['name'] = $aRefIdentity['lastName'];
                     $aEpixResult[$sKey]['vorname'] = $aRefIdentity['firstName'];
@@ -1380,9 +1380,13 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
         } else {
             $sIdTD = $sEdTD = '<td></td>';
 
+            // E-PIX data
             if (strlen($aData['mpiid']) > 0) {
                 $mpi_url = http_build_query(["mpiid_enc" => encrypt($aData['mpiid'],$_SESSION[$oPseudoService->session]['enckey'])]);
                 $sJumpTD = '<td><a href="'.$module->moduleIndex.'&'.$mpi_url.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>';
+                if (isset($aData['ish_id_epix'])) {
+                    $sIdTD = '<td>'.$aData['ish_id_epix'].'</td>';
+                }
                 if ($aData['edit'] == true && PseudoService::isAllowed('edit')) {
                     $sEdTD = '<td><a href="'.$module->moduleIndex.'&'.$mpi_url.'&mode=create&edit=1">'.RCView::fa('fa-solid fa-user-pen').'</a></td>';
                 }
@@ -1393,6 +1397,7 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
                     $sDelTD = '<td onclick="confirmDelete(\''.$del_mpi_url.'\');"><span style="color:red;">'.RCView::fa('fa-solid fa-user-xmark"').'</span></td>';
                 }
             }
+            // SAP data
             if (strlen($aData['ish_id']) > 0) {
                 $ish_url = http_build_query(["ish_id_enc" => encrypt($aData['ish_id'],$_SESSION[$oPseudoService->session]['enckey'])]);
                 $sIdTD = '<td>'.$aData['ish_id'].'</td>';
