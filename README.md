@@ -42,3 +42,9 @@ The authentication of the REDCap user uses OIDC authorization code flow.
 | SAP API URL           | API URL SAP search              |
 | SAP Scope             | SAP search Scope (OIDC)          |
 | use proxy             | use REDCap system proxy for http(s) |
+
+## Project Configuration
+
+- gPAS domain: specifiy gPAS domain for creating studyIDs
+- additional fields for setting the user rights for specific roles:
+  !(docs/project_config1.png)
