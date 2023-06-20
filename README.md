@@ -1,8 +1,21 @@
 # REDCap module to integrate E-PIX / gPAS for (de-)pseudonymisation
 
+This modul uses these components:
+
+<img src="docs/E-PIX-Logo-ohne-Text-150y.png" width="100"> E-PIX: https://www.ths-greifswald.de/forscher/e-pix/ 
+
+<img src="docs/gPAS-Logo-ohne-Text-160y.png" width="100"> gPAS: https://www.ths-greifswald.de/forscher/gpas/
+
+SAP search: it uses the SAP BAPI_PATIENT_SEARCH Function Module for IS-H BAPI Patient.Search (see [WSDL](docs/wsdl_sap.xml))
+
+The authentication of the REDCap user uses OIDC authorization code flow.
 
 ## Prerequisites
 - REDCap with external modules framework (>= v.8.0.0)
+- E-PIX server
+- gPAS server
+- SAP API for searching patients
+- API Gateway for secure access to APIs with OIDC
 
 ## Installation
 - Unzip the module to the modules directory (folder name pseudo_service_vX.X.X)
