@@ -37,8 +37,9 @@ This modul uses these components:
 | gPAS Domain API URL   | API URL for gPAS Domain Manager    |
 | gPAS Domain Scope     | gPAS Domains Scope (OIDC)       |
 | gPAS Scope            | gPAS Scope (OIDC)                |
-| OAuth2 Client ID      | Client ID for OIDC Authentification    |
-| OAuth2 Client secret  | Secret for OIDC Authentification       |
+| OAuth2 Authorization URL      | Authorization URL for OIDC     |
+| OAuth2 Client ID      | Client ID for OIDC     |
+| OAuth2 Client secret  | Secret for OIDC        |
 | SAP API URL           | API URL SAP search              |
 | SAP Scope             | SAP search Scope (OIDC)          |
 | use proxy             | use REDCap system proxy for http(s) |

@@ -175,6 +175,12 @@
             "type": "text"
         },
         {
+            "key": "authorization_url",
+            "name": "Authorization Server URL",
+            "required": true,
+            "type": "text"
+        },
+        {
             "key": "client_id",
             "name": "OAuth2 Client ID",
             "required": true,

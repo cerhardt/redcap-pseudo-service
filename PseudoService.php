@@ -40,6 +40,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->callbackUrl = $this->moduleIndex;
 
         // API Authentication
+        $this->authorization_url = $this->getSystemSetting("authorization_url");
         $this->client_id = $this->getSystemSetting("client_id");    // The client ID assigned to you by the provider
         $this->client_secret = $this->getSystemSetting("secret");    // The client password assigned to you by the provider
         
@@ -89,10 +90,10 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if ($GLOBALS['_SERVER']['SERVER_NAME'] != $this->getSystemSetting("allowed_domain")) {
             exit('Zugriff verweigert!');
        }
-        if (strlen($this->sap_url) == 0) {
-            exit('SAP URL fehlt!');
+        if (strlen($this->authorization_url) == 0) {
+            exit('Authorisierungs URL fehlt!');
         }
-        $host = parse_url($this->sap_url, PHP_URL_HOST);
+        $host = parse_url($this->authorization_url, PHP_URL_HOST);
 
         $provider = new \League\OAuth2\Client\Provider\GenericProvider([
             'clientId'                => $this->client_id,    // The client ID assigned to you by the provider
