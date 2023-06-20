@@ -2,13 +2,13 @@
 
 This modul uses these components:
 
-<img src="docs/E-PIX-Logo-ohne-Text-150y.png" width="100"> E-PIX: https://www.ths-greifswald.de/forscher/e-pix/ 
+* <img src="docs/E-PIX-Logo-ohne-Text-150y.png" width="100"> E-PIX: https://www.ths-greifswald.de/forscher/e-pix/ 
 
-<img src="docs/gPAS-Logo-ohne-Text-160y.png" width="100"> gPAS: https://www.ths-greifswald.de/forscher/gpas/
+* <img src="docs/gPAS-Logo-ohne-Text-160y.png" width="100"> gPAS: https://www.ths-greifswald.de/forscher/gpas/
 
-SAP search: it uses the SAP BAPI_PATIENT_SEARCH Function Module for IS-H BAPI Patient.Search (see [WSDL](docs/wsdl_sap.xml))
+* SAP search: it uses the SAP BAPI_PATIENT_SEARCH Function Module for IS-H BAPI Patient.Search (see [WSDL](docs/wsdl_sap.xml))
 
-The authentication of the REDCap user uses OIDC authorization code flow.
+* The authorisation of the REDCap user uses OIDC authorization code flow.
 
 ## Prerequisites
 - REDCap with external modules framework (>= v.8.0.0)
@@ -19,8 +19,8 @@ The authentication of the REDCap user uses OIDC authorization code flow.
 
 ## Installation
 - Unzip the module to the modules directory (folder name pseudo_service_vX.X.X)
-- Go to **Control Center > External Modules** and enable the module
-- For each project you want to use this module, go to the project home page, click on **External Modules** link, and then enable the module for that project.
+- Go to **Control Center > External Modules > Manage** and enable the module
+- For each project you want to use this module, go to the project home page, click on **External Modules > Manage**, and then enable the module for that project.
 
 ## System Configuration
 
@@ -47,4 +47,4 @@ The authentication of the REDCap user uses OIDC authorization code flow.
 
 - gPAS domain: specifiy gPAS domain for creating studyIDs
 - additional fields for setting the user rights for specific roles:
-  !(docs/project_config1.png)
+  ![](docs/project_config1.png)
