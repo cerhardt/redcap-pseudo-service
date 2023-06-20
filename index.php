@@ -132,7 +132,8 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             }
 
             // E-PIX search
-            if (strlen($_POST['birthDate']) > 0 || strlen($_POST['lastName']) > 0) {
+            $aResult = array();
+            if (strlen($_POST['birthDate']) > 0 || strlen($_POST['lastName']) > 0 || strlen($_POST['firstName']) > 0) {
                 $aResult = $oPseudoService->searchPersonsByPDQ($_POST); 
             } elseif (strlen($_POST['ish_id']) > 0) {
                 $aResult = $oPseudoService->getPersonByLocalIdentifier($_POST['ish_id'],false); 
@@ -215,7 +216,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                 $oPseudoService->setError('');    
             }
         } // $bPatientSearch && PseudoService::isAllowed('search')
-        
+
         // SAP and external: resort mixed results by name
         if ($bPatientSearch && count($aEpixResult) > 0) {
             $aNameSort = array_column($aEpixResult, 'name');
