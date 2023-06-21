@@ -6,7 +6,7 @@ This modul uses these components:
 
 * <img src="docs/gPAS-Logo-ohne-Text-160y.png" width="100"> gPAS: https://www.ths-greifswald.de/forscher/gpas/
 
-* SAP search: it uses the SAP BAPI_PATIENT_SEARCH Function Module for IS-H BAPI Patient.Search (see [WSDL](docs/wsdl_sap.xml))
+* SAP search: it uses the SAP BAPI_PATIENT_SEARCH Function Module for IS-H BAPI Patient.Search (see [WSDL](docs/wsdl_sap.xml) of the SOAP API)
 
 * The authorisation of the REDCap user uses OIDC authorization code flow.
 
@@ -14,7 +14,7 @@ This modul uses these components:
 - REDCap with external modules framework (>= v.8.0.0)
 - E-PIX server
 - gPAS server
-- SAP API for searching patients
+- SAP SOAP API for searching patients
 - API Gateway for secure access to APIs with OIDC
 
 ## Installation
