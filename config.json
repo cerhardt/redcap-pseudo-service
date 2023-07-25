@@ -184,13 +184,13 @@
             "key": "client_id",
             "name": "OAuth2 Client ID",
             "required": true,
-            "type": "text"
+            "type": "password"
         },
         {
             "key": "secret",
             "name": "OAuth2 Cient secret",
             "required": true,
-            "type": "text"
+            "type": "password"
         },
         {
             "key": "gpas_url",
