@@ -136,7 +136,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             if (strlen($_POST['birthDate']) > 0 || strlen($_POST['lastName']) > 0 || strlen($_POST['firstName']) > 0) {
                 $aResult = $oPseudoService->searchPersonsByPDQ($_POST); 
             } elseif (strlen($_POST['ish_id']) > 0) {
-                $aResult = $oPseudoService->getPersonByLocalIdentifier($_POST['ish_id'],false); 
+                $aResult = $oPseudoService->getActivePersonByLocalIdentifier($_POST['ish_id'],false); 
             }
 
             if (is_array($aResult)) {            
@@ -353,7 +353,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
         
         if (count($aEPIXFilter) > 0) {
             // get personal data from E-PIX
-            $aItems = $oPseudoService->getPersonsByMPIBatch($aEPIXFilter);
+            $aItems = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
 
             // copy data to new array with psn as key 
             $aRefIdentity = array();
@@ -761,7 +761,7 @@ if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] !=
                     } 
                 } else {
                     // only search access!
-                    $mpiId = $oPseudoService->getPersonByLocalIdentifier($ishId);
+                    $mpiId = $oPseudoService->getActivePersonByLocalIdentifier($ishId);
                     if ($mpiId) {
                         // get PSN
                         $sPSN = $oPseudoService->getPseudonymFor($mpiId);
@@ -969,7 +969,7 @@ if ($sMode == 'create' && $_GET['edit'] == '1' && PseudoService::isAllowed('edit
     if (strlen($iMPI_ID_ENC) > 0 && count($aPost) == 0) {
         $mpiId = decrypt($iMPI_ID_ENC,$_SESSION[$oPseudoService->session]['enckey']);
         if ($mpiId) {
-            $result = $oPseudoService->getPersonByMPI($mpiId);
+            $result = $oPseudoService->getActivePersonByMPI($mpiId);
 
             if (!is_array($result['referenceIdentity']['gender'])) {
                 $aPost['gender'] = $result['referenceIdentity']['gender'];

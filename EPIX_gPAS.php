@@ -83,7 +83,7 @@ class EPIX_gPAS extends PseudoService {
 
         // get SAP-ID (ID_DOMAIN) from E-PIX
         $aISH_IDs = array();
-        $aIdentifier = $this->getAllIdentifierForMPI($mpiID);
+        $aIdentifier = $this->getAllIdentifierForAcivePersonWithMPI($mpiID);
         foreach($aIdentifier as $aId) {
             if ($aId['identifierDomain']['name'] == $this->epix_id_domain) {
                 $aISH_IDs[] = $aId['value'];
@@ -91,7 +91,7 @@ class EPIX_gPAS extends PseudoService {
         }
 
         // get personal data from E-PIX
-        $aIdentifier = $this->getPersonByMPI($mpiID);
+        $aIdentifier = $this->getActivePersonByMPI($mpiID);
         $aRefIdentity = $aIdentifier['referenceIdentity'];
         $sIdat = '';
         if (!is_array($aRefIdentity['firstName'])) {
@@ -261,7 +261,7 @@ class EPIX_gPAS extends PseudoService {
     * @access  private
     * @return array list of identifiers
     */
-    private function getAllIdentifierForMPI($piMPI) {
+    private function getAllIdentifierForAcivePersonWithMPI($piMPI) {
         $requestArray = Array();
         $requestArray['domainName'] = $this->epix_domain;
         $requestArray['mpiId'] = $piMPI;
@@ -289,7 +289,7 @@ class EPIX_gPAS extends PseudoService {
     * @access  public
     * @return array personal data
     */
-    public function getPersonByMPI($piMPI) {
+    public function getActivePersonByMPI($piMPI) {
         $requestArray = Array();
         $requestArray['domainName'] = $this->epix_domain;
         $requestArray['mpiId'] = $piMPI;
@@ -310,7 +310,7 @@ class EPIX_gPAS extends PseudoService {
     * @access  public
     * @return array personal data
     */
-    public function getPersonsByMPIBatch($paMPI) {
+    public function getActivePersonsByMPIBatch($paMPI) {
         $requestArray = Array();
         $requestArray['domainName'] = $this->epix_domain;
         $requestArray['mpiIds'] = $paMPI;
@@ -339,7 +339,7 @@ class EPIX_gPAS extends PseudoService {
     * @access  public
     * @return array personal data
     */
-    public function getPersonByLocalIdentifier($piISH, $pbMPI = true) {
+    public function getActivePersonByLocalIdentifier($piISH, $pbMPI = true) {
         // 
         $requestArray = array();
         $requestArray['domainName'] = $this->epix_domain;
@@ -487,7 +487,7 @@ class EPIX_gPAS extends PseudoService {
     * @access  public
     * @return array personal data
     */
-    public function getPersonsForDomainFiltered($paMPI) {
+    public function getActivePersonsForDomainFiltered($paMPI) {
         $requestArray = Array();
         $requestArray['domainName'] = $this->epix_domain;
         $requestArray['filter'] = $paMPI;

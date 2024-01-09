@@ -108,7 +108,7 @@ class SAPPatientSearch extends PseudoService {
         $requestArray['identifier']['value'] = $ish_id;
         $requestArray['identifier']['identifierDomain']['name'] = $oPseudoService->epix_id_domain;
         try {
-            $result = $oPseudoService->SoapCall("epix",$requestArray,"getPersonByLocalIdentifier");
+            $result = $oPseudoService->SoapCall("epix",$requestArray,"getActivePersonByLocalIdentifier");
             $mpiId = $result['return']['mpiId']['value'];
             $bMode = 'update';
             $bUpdate = false; 
@@ -216,7 +216,7 @@ class SAPPatientSearch extends PseudoService {
                 $requestArray['localIds']['value'] = $ish_id;
                 $requestArray['localIds']['identifierDomain']['name'] = $oPseudoService->epix_id_domain;
                 try {
-                    $oPseudoService->SoapCall("epix",$requestArray, "addLocalIdentifierToMPI");
+                    $oPseudoService->SoapCall("epix",$requestArray, "addLocalIdentifierToActivePersonWithMPI");
                 } catch (\Exception $e) {
                     $this->error = $e->getMessage();
                     return (false);
@@ -291,7 +291,7 @@ class SAPPatientSearch extends PseudoService {
                     }
                 } else {
                     try {
-                        $result = $oPseudoService->getPersonByMPI($mpiId);
+                        $result = $oPseudoService->getActivePersonByMPI($mpiId);
                     } catch (\Exception $e) {
                         $this->error = $e->getMessage();
                         return (false);
