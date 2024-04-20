@@ -126,44 +126,71 @@
             "name": "use external pseudonyms (extPSN)",
             "super-users-only": true,
             "type": "checkbox"
-        },
-        {
-            "key": "extpsn_prefix",
-            "name": "extPSN: prefix",
-            "type": "text",
+          },
+          {
+              "key": "extpsn_prefix",
+              "name": "extPSN: prefix",
+              "type": "text",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "extpsn_field",
+              "name": "extPSN: field to store pseudonym",
+              "type": "field-list",
+              "autocomplete": true,
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "extpsn_event",
+              "name": "extPSN: event to store pseudonym",
+              "type": "event-list",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+            "key": "save_sap_id",
+            "name": "save SAP-ID in REDCap",
             "super-users-only": true,
-            "branchingLogic": {
-                "field": "extpsn",
-                "value": "true"
-            }
-        },
-        {
-            "key": "extpsn_field",
-            "name": "extPSN: field to store pseudonym",
-            "type": "field-list",
-            "autocomplete": true,
-            "super-users-only": true,
-            "branchingLogic": {
-                "field": "extpsn",
-                "value": "true"
-            }
-        },
-        {
-            "key": "extpsn_event",
-            "name": "extPSN: event to store pseudonym",
-            "type": "event-list",
-            "super-users-only": true,
-            "branchingLogic": {
-                "field": "extpsn",
-                "value": "true"
-            }
-        },
-        {
-            "key": "maxcnt",
-            "name": "max. search hits",
-            "required": false,
-            "type": "text"
-        }
+            "type": "checkbox"
+          },
+          {
+              "key": "sap_id_field",
+              "name": "field to store SAP-ID",
+              "type": "field-list",
+              "autocomplete": true,
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "save_sap_id",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "sap_id_event",
+              "name": "event to store SAP-ID",
+              "type": "event-list",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "save_sap_id",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "maxcnt",
+              "name": "max. search hits",
+              "required": false,
+              "type": "text"
+          }
 
 	],
 

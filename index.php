@@ -516,6 +516,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   if (strlen($aRow['psn']) == 0) {
                       $sPSN_mode = 'create';
                   }
+                  $ishId = '';
                   
                   $aCSV[$i] = $aRow;
                   $aCSV[$i]['imported'] = '';
@@ -620,9 +621,9 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       continue;
                   }          
 
-              
                   $matchStatus = $aResult['return']['matchStatus'];
                   $mpiId_create = $aResult['return']['person']['mpiId']['value'];
+
                   /*
                   if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
                       Logging::logEvent('', $module->getModuleName(), "OTHER", '', $mpiId_create, "MPI created");
@@ -653,7 +654,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       Logging::logEvent('', $module->getModuleName(), "OTHER", '', $oPseudoService->trimZero($sPSN), "PSN created");
 
                       // create REDCap entry
-                      if (!$oPseudoService->createREDCap($sPSN)) {
+                      if (!$oPseudoService->createREDCap($sPSN, '', $ishId)) {
                           $aCSV[$i]['error'] = $oPseudoService->getError();
                       }
                   } else {
@@ -753,7 +754,7 @@ if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] !=
                             // create / get PSN
                             $sPSN = $oPseudoService->getOrCreatePseudonymFor($mpiId_create);
                             if ($sPSN) {
-                                $oPseudoService->createREDCap($sPSN);
+                                $oPseudoService->createREDCap($sPSN, '', $ishId);
                                 // redcap log
                                 Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved");
                             }

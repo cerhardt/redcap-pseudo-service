@@ -808,7 +808,7 @@ class EPIX_gPAS extends PseudoService {
     * @access  public
     * @return boolean
     */
-    public function createREDCap($psPSN, $psextPSN = '') {
+    public function createREDCap($psPSN, $psextPSN = '', $pishId = '') {
         global $Proj, $project_id;
         $sPK = REDCap::getRecordIdField();
         $aData = array();
@@ -828,6 +828,7 @@ class EPIX_gPAS extends PseudoService {
             $this->setError("Der REDCap-Datensatz konnte nicht angelegt werden!");
             return (false);
         }
+        // save external psn
         if (strlen($this->getProjectSetting("extpsn_field")) > 0 && strlen($psextPSN) > 0) {
             $aData = array();
             $aData[$sPK] = $this->trimZero($psPSN);
@@ -836,6 +837,22 @@ class EPIX_gPAS extends PseudoService {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("extpsn_event")); 
             }
             $aData[$this->getProjectSetting("extpsn_field")] = $psextPSN;
+            // save data
+            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
+            if (count($result['errors']) > 0) {
+                $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
+                return (false);
+            }
+        }        
+        // save SAP-ID
+        if (strlen($this->getProjectSetting("sap_id_field")) > 0 && strlen($psextPSN) == 0 && strlen($pishId) > 0) {
+            $aData = array();
+            $aData[$sPK] = $this->trimZero($psPSN);
+
+            if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("sap_id_event")) > 0) {
+                $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("sap_id_event")); 
+            }
+            $aData[$this->getProjectSetting("sap_id_field")] = $pishId;
             // save data
             $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
             if (count($result['errors']) > 0) {
