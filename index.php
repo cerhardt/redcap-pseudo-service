@@ -621,8 +621,12 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       continue;
                   }          
 
-                  $matchStatus = $aResult['return']['matchStatus'];
-                  $mpiId_create = $aResult['return']['person']['mpiId']['value'];
+                  // align arrays
+                  if (isset($aResult['return']['person'])) {
+                      $mpiId_create = $aResult['return']['person']['mpiId']['value'];
+                  } else {
+                      $mpiId_create = $aResult['mpiId']['value'];
+                  }
 
                   /*
                   if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
