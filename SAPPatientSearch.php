@@ -2,7 +2,7 @@
 namespace meDIC\PseudoService;
 
 class SAPPatientSearch extends PseudoService {
-    
+
     public function __construct() {
 		parent::__construct();
 
@@ -21,19 +21,19 @@ class SAPPatientSearch extends PseudoService {
     public function SoapCall($paRequest) {
         // insert default filters
         $aRequestTmp = array_merge($paRequest,$this->aDefaultFilter);
-        
+
         $arrayResult = $this->_SoapCall('sap',$aRequestTmp,'BAPI_PATIENT_SEARCH');
         // error handling SAP
-        if (isset($arrayResult['WORST_RETURNED_MSGTY']) && $arrayResult['WORST_RETURNED_MSGTY'] == 'E') {        
+        if (isset($arrayResult['WORST_RETURNED_MSGTY']) && $arrayResult['WORST_RETURNED_MSGTY'] == 'E') {
             throw new \Exception($this->msg_nohits);
         }
-        
+
         // return search result
-        if (is_array($arrayResult['PATIENTS']['item'])) { 
+        if (is_array($arrayResult['PATIENTS']['item'])) {
             return ($arrayResult['PATIENTS']['item']);
         }
     }
-    
+
     /**
     * Search for patients in SAP
     *
@@ -46,23 +46,23 @@ class SAPPatientSearch extends PseudoService {
 
         $requestArray = Array();
         if (strlen($paPerson['ish_id']) > 0) {
-            $requestArray['FILTER_PATIENTID'] = $paPerson['ish_id'];
+            $requestArray[$this->sap_filter_pid] = $paPerson['ish_id'];
         }
         if (strlen($paPerson['lastName']) > 0) {
-            $requestArray['FILTER_LAST_NAME_PAT'] = $paPerson['lastName'];
-            if (substr($requestArray['FILTER_LAST_NAME_PAT'],-1) != '*') {
-                $requestArray['FILTER_LAST_NAME_PAT'] .= '*';
+            $requestArray[$this->sap_filter_lastname] = $paPerson['lastName'];
+            if (substr($requestArray[$this->sap_filter_lastname],-1) != '*') {
+                $requestArray[$this->sap_filter_lastname] .= '*';
             }
         }
         if (strlen($paPerson['firstName']) > 0) {
-            $requestArray['FILTER_FRST_NAME_PAT'] = $paPerson['firstName'];
-            if (substr($requestArray['FILTER_FRST_NAME_PAT'],-1) != '*') {
-                $requestArray['FILTER_FRST_NAME_PAT'] .= '*';
+            $requestArray[$this->sap_filter_firstname] = $paPerson['firstName'];
+            if (substr($requestArray[$this->sap_filter_firstname],-1) != '*') {
+                $requestArray[$this->sap_filter_firstname] .= '*';
             }
         }
         if (strlen($paPerson['birthDate']) > 0) {
-            $requestArray['FILTER_DOB_FROM'] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
-            $requestArray['FILTER_DOB_TO'] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
+            $requestArray[$this->sap_filter_dob_from] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
+            $requestArray[$this->sap_filter_dob_to] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
         }
 
         try {
@@ -84,7 +84,7 @@ class SAPPatientSearch extends PseudoService {
     }
 
     /**
-    * Search for ISH-ID in SAP 
+    * Search for ISH-ID in SAP
     * generate MPI in E-PIX with data from SAP
     * update E-PIX with data from SAP
     *
@@ -111,7 +111,7 @@ class SAPPatientSearch extends PseudoService {
             $result = $oPseudoService->SoapCall("epix",$requestArray,"getActivePersonByLocalIdentifier");
             $mpiId = $result['return']['mpiId']['value'];
             $bMode = 'update';
-            $bUpdate = false; 
+            $bUpdate = false;
             $aEPIXResult = $result['return'];
 
             // add custom vars
@@ -158,12 +158,12 @@ class SAPPatientSearch extends PseudoService {
             */
 
             // mapg gender from SAP to E-PIX
-            $gender = 'U'; 
+            $gender = 'U';
             if ($result['SEX'] === '1') {
     			$gender = 'M';
     		} elseif ($result['SEX'] === '2') {
     			$gender = 'F';
-    		}             
+    		}
 
 
             // copy data from SAP to E-PIX
@@ -186,7 +186,7 @@ class SAPPatientSearch extends PseudoService {
             $requestArray['identity']['contacts']['phone'] = $result['PHONENO'];
             $requestArray['identity']['contacts']['country'] = $result['COUNTRY_TEXT'];
             $requestArray['identity']['contacts']['countryCode'] = $result['COUNTRY'];
-            
+
             // add custom vars
             if (is_array($this->getProjectSetting("cust-vars-list"))) {
                 foreach($this->getProjectSetting("cust-vars-list") as $i => $foo) {
@@ -207,7 +207,7 @@ class SAPPatientSearch extends PseudoService {
                     $this->error = $e->getMessage();
                     return (false);
                 }
-    
+
                 // add ISH-ID to MPI entry in E-PIX
                 $mpiId = $result['return']['person']['mpiId']['value'];
                 $requestArray = array();
@@ -248,7 +248,7 @@ class SAPPatientSearch extends PseudoService {
                 if ($aEPIXResult['referenceIdentity']['lastName'] !== $requestArray2['identity']['lastName']) {
                     $bUpdate = true;
                 }
-                
+
                 if (is_array($requestArray2['identity']['mothersMaidenName'])) $requestArray2['identity']['mothersMaidenName'] = '';
                 if (is_array($aEPIXResult['referenceIdentity']['mothersMaidenName'])) $aEPIXResult['referenceIdentity']['mothersMaidenName'] = '';
                 if ($aEPIXResult['referenceIdentity']['mothersMaidenName'] !== $requestArray2['identity']['mothersMaidenName']) {
@@ -273,7 +273,7 @@ class SAPPatientSearch extends PseudoService {
                     krsort($aContactsTmp);
                     $aContact = current($aContactsTmp);
                 }
-                
+
                 foreach($requestArray2['identity']['contacts'] as $key => $val) {
                     if (is_array($val)) $val = '';
                     if (is_array($aContact[$key])) $aContact[$key] = '';

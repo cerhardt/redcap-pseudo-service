@@ -9,18 +9,18 @@ include_once('EPIX_gPAS.php');
 
 class PseudoService extends \ExternalModules\AbstractExternalModule {
 	public $error;
-    
+
     public function __construct() {
         parent::__construct();
-        
+
         // System settings
-        
+
         // gPAS
         $this->gpas_url = $this->getSystemSetting("gpas_url");
         $this->gpas_scope = $this->getSystemSetting("gpas_scope");
         $this->gpas_domain_url = $this->getSystemSetting("gpas_domain_url");
         $this->gpas_domain_scope = $this->getSystemSetting("gpas_domain_scope");
-        
+
         // E-PIX
         $this->epix_url = $this->getSystemSetting("epix_url");
         $this->epix_scope = $this->getSystemSetting("epix_scope");
@@ -28,13 +28,18 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->epix_safe_source = $this->getSystemSetting("epix_safe_source");
         $this->epix_external_source = $this->getSystemSetting("epix_external_source");
         $this->epix_id_domain = $this->getSystemSetting("epix_id_domain");
-        
+
         // SAP
         $this->sap_url = $this->getSystemSetting("sap_url");
         $this->sap_scope = $this->getSystemSetting("sap_scope");
-        
+        $this->sap_filter_pid = $this->getSystemSetting("sap_filter_pid");
+        $this->sap_filter_lastname = $this->getSystemSetting("sap_filter_lastname");
+        $this->sap_filter_firstname = $this->getSystemSetting("sap_filter_firstname");
+        $this->sap_filter_dob_from = $this->getSystemSetting("sap_filter_dob_from");
+        $this->sap_filter_dob_to = $this->getSystemSetting("sap_filter_dob_to");
+
         // module index URL
-        $this->moduleIndex = $this->replaceHost($this->getUrl('index.php'));        
+        $this->moduleIndex = $this->replaceHost($this->getUrl('index.php'));
 
         // callback URL
         $this->callbackUrl = $this->moduleIndex;
@@ -43,15 +48,15 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->authorization_url = $this->getSystemSetting("authorization_url");
         $this->client_id = $this->getSystemSetting("client_id");    // The client ID assigned to you by the provider
         $this->client_secret = $this->getSystemSetting("secret");    // The client password assigned to you by the provider
-        
+
         // namespace for session variables
         $this->session = strtolower($this->getModuleName());
-        
+
         // set curl proxy from REDCap settings
         if ($this->getSystemSetting("use_proxy") === true) {
             $this->curl_proxy = $GLOBALS['proxy_hostname'];
             $this->curl_proxy_auth = $GLOBALS['proxy_username_password'];
-            
+
             $proxy_tmp = parse_url($GLOBALS['proxy_hostname']);
             $this->proxy = $proxy_tmp['scheme'].'://';
             if (strlen($this->curl_proxy_auth) > 0) {
@@ -73,7 +78,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             }
             $this->gpas_domain = $this->getProjectSetting("gpas_domain");
         }
-        
+
         $this->error = '';
     }
 
@@ -106,7 +111,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             'verify'                  => false,
             'scopes' => $this->sap_scope.' '.$this->gpas_scope.' '.$this->gpas_domain_scope.' '.$this->epix_scope
         ]);
-        
+
         // Token expired? -> Refresh Token
         if (isset($_SESSION[$this->session]['oauth2_expiredin']) && time() >= $_SESSION[$this->session]['oauth2_expiredin']) {
 
@@ -124,7 +129,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             }
 
         }
-        
+
         // Already logged in: Get Token from session
         if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
             $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
@@ -133,7 +138,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // If we don't have an authorization code then get one
         if (!isset($_GET['code'])) {
-        
+
             // Fetch the authorization URL from the provider; this returns the
             // urlAuthorize option and generates and applies any necessary parameters
             // (e.g. state).
@@ -141,20 +146,20 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
             // Get the state generated for you and store it to the session.
             $_SESSION[$this->session]['oauth2_state'] = $provider->getState();
-            
+
             // Redirect the user to the authorization URL.
             redirect($authorizationUrl);
-        
+
         // Check given state against previously stored one to mitigate CSRF attack
         } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session]['oauth2_state'])) {
-        
+
             if (isset($_SESSION[$this->session]['oauth2_state'])) {
                 unset($_SESSION[$this->session]['oauth2_state']);
             }
             exit('Invalid state');
-        
+
         } else {
-        
+
             try {
                 // Try to get an access token using the authorization code grant.
                 $accessToken = $provider->getAccessToken('authorization_code', [
@@ -168,8 +173,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 // Failed to get the access token or user details.
                 exit($e->getMessage());
             }
-        
-        }    
+
+        }
     }
 
     /**
@@ -193,10 +198,10 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $aRequest = array('SOAP-ENV_Body' => array('ns1_'.$sFunctioName => $paRequest));
         $xml = new \SimpleXMLElement("<?xml version=\"1.0\" encoding=\"utf-8\"?><SOAP-ENV:Envelope></SOAP-ENV:Envelope>");
         array_to_xml( $aRequest, $xml );
-        $sXML= $xml->asXML();    
+        $sXML= $xml->asXML();
         $sXML = str_replace('SOAP-ENV_Body>','SOAP-ENV:Body>',$sXML);
         $sXML = str_replace('ns1_'.$sFunctioName,'ns1:'.$sFunctioName,$sXML);
-        
+
         // determine namespace / url
         $url = '';
         if ($psService == 'sap') {
@@ -226,19 +231,19 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // debug
         //print('<pre>'.htmlspecialchars($sXML).'</pre>');
-        
+
         // curl call
         $curl = curl_init();
         curl_setopt_array($curl, array(
           CURLOPT_URL => $url,
           CURLOPT_RETURNTRANSFER => true,
           CURLOPT_CUSTOMREQUEST => "POST",
-          CURLOPT_POSTFIELDS => $sXML, 
+          CURLOPT_POSTFIELDS => $sXML,
           CURLOPT_HTTPHEADER => array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken),
-          CURLOPT_PROXY =>  $this->curl_proxy, 
-          CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,     
+          CURLOPT_PROXY =>  $this->curl_proxy,
+          CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
         ));
- 
+
         $response = curl_exec($curl);
         $curl_info = curl_getinfo($curl);
         $err = curl_error($curl);
@@ -247,22 +252,22 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         // user is authenticated, but has the wrong scope
         if ($curl_info['http_code'] == '401') {
           throw new \Exception(strtoupper($psService).': Anmeldung fehlgeschlagen!');
-        } 
+        }
         if ($curl_info['http_code'] == '403') {
           throw new \Exception(strtoupper($psService).': keine Berechtigung!');
-        } 
+        }
 
         // curl error
         if ($err) {
           throw new \Exception(strtoupper($psService).': '.$err);
-        } 
+        }
 
         // convert xml to array
         $plainXML = PseudoService::mungXML($response);
         $arrayResult = json_decode(json_encode(SimpleXML_Load_String($plainXML, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
         // omit first two levels of response
-        $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));        
-        $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));        
+        $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
+        $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
 
         // return result
         return($arrayResult);
@@ -314,7 +319,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 return (false);
         }
     }
-    
+
     /**
     * show depseudonymised data above data entry form
     *
@@ -360,7 +365,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     }
 
     /**
-    * get login state of current session (TEIS) 
+    * get login state of current session (TEIS)
     *
     * @author  Christian Erhardt
     * @access  public
@@ -372,7 +377,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }
         return (false);
     }
-    
+
     /**
     * deactivate namespaces in soap xml
     *
@@ -385,11 +390,11 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     {
         $obj = SimpleXML_Load_String($xml);
         if ($obj === FALSE) return $xml;
-    
+
         // GET NAMESPACES, IF ANY
         $nss = $obj->getNamespaces(TRUE);
         if (empty($nss)) return $xml;
-    
+
         // CHANGE ns: INTO ns_
         $nsm = array_keys($nss);
         foreach ($nsm as $key)
@@ -417,14 +422,14 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }
         return $xml;
     }
-    
+
     public static function csv_to_array($filename='', $delimiter=',') {
         if(!file_exists($filename) || !is_readable($filename))
             return FALSE;
-    
+
         // BOM as a string for comparison.
         $bom = "\xef\xbb\xbf";
-        
+
         $header = NULL;
         $data = array();
         if (($handle = fopen($filename, 'r')) !== FALSE)
@@ -453,7 +458,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     * @author  Christian Erhardt
     * @param string $sUrl
     * @access  private
-    * @return string 
+    * @return string
     */
     private function replaceHost($sUrl) {
         if (strlen($this->getSystemSetting("allowed_domain")) > 0) {
@@ -462,7 +467,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $sUrl = str_replace($host, $this->getSystemSetting("allowed_domain"),$sUrl);
             }
         }
-        return $sUrl;    
+        return $sUrl;
     }
 }
 
