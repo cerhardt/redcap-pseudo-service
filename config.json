@@ -17,8 +17,8 @@
 	"permissions": [
         "hook_data_entry_form_top"
 	],
-	
-	"enable-every-page-hooks-on-system-pages":false,	
+
+	"enable-every-page-hooks-on-system-pages":false,
 
 	"links": {
         "project": [
@@ -62,7 +62,7 @@
                       "field": "extern",
                       "value": "true"
                   }
-              ]            
+              ]
            },
            "sub_settings":[
               {
@@ -304,6 +304,36 @@
         {
             "key": "sap_scope",
             "name": "SAP Scope",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "sap_filter_pid",
+            "name": "SAP Filter: IS-H ID",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "sap_filter_lastname",
+            "name": "SAP Filter: Last Name",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "sap_filter_firstname",
+            "name": "SAP Filter: First Name",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "sap_filter_dob_from",
+            "name": "SAP Filter: Date of Birth FROM",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "sap_filter_dob_to",
+            "name": "SAP Filter: Date of Birth TO",
             "required": true,
             "type": "text"
         },
