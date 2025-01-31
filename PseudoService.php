@@ -68,6 +68,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             }
         }
 
+        //TODO: generate field in UI for oauth or basic login
+        $this->login_stuff = '';
+
         // default: max count of search hits
         $this->maxcnt = 50;
 
@@ -82,19 +85,40 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->error = '';
     }
 
+    /**
+     * Login Options for API Gateway
+     *
+     * @author  Egidia Cenko
+     * @param string login option: oauth (default) / basic
+     * @access  public
+     * @return void
+     */
+    public function login($loginOption='oauth') {
+        //TODO: outsource param to redcap module UI options
+        $this->login_stuff = $loginOption;
+
+        // verify allowed domain
+        if ($GLOBALS['_SERVER']['SERVER_NAME'] != $this->getSystemSetting("allowed_domain")) {
+            exit('Zugriff verweigert!');
+       }
+
+        // call default oauth logic
+        if ($loginOption == 'oauth') {
+           $this->_login_oauth();
+
+        } elseif ($loginOption == 'basic') {
+            $this->_login_basic();
+        }
+    }
 
     /**
     * Login to API Gateway with OAuth2 (authorization code grant)
     *
     * @author  Christian Erhardt
-    * @access  public
+    * @access  protected
     * @return void
     */
-    public function login() {
-        // verify allowed domain
-        if ($GLOBALS['_SERVER']['SERVER_NAME'] != $this->getSystemSetting("allowed_domain")) {
-            exit('Zugriff verweigert!');
-       }
+    protected function _login_oauth() {
         if (strlen($this->authorization_url) == 0) {
             exit('Authorisierungs URL fehlt!');
         }
@@ -173,8 +197,18 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 // Failed to get the access token or user details.
                 exit($e->getMessage());
             }
-
         }
+    }
+
+    /**
+     * Login to API Gateway with Basic Auth
+     * 
+     * @author Egidia Cenko
+     * @access protected
+     * @return void
+     */
+    protected function _login_basic() {
+       echo "--basic login logic " . $this->login_stuff . " --";
     }
 
     /**
@@ -223,6 +257,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if (strlen($url) == 0) return (false);
 
         // get access token from session
+
+        echo "von soapCall aus die loginOption: ". $this->$loginOption . " <-done";
+
         if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
             $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
         } else {
@@ -232,6 +269,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         // debug
         //print('<pre>'.htmlspecialchars($sXML).'</pre>');
 
+        //TODO: insert Basic Auth instead of Bearer
         // curl call
         $curl = curl_init();
         curl_setopt_array($curl, array(

@@ -44,8 +44,11 @@ This modul uses these components:
 | SAP Scope             | SAP search Scope (OIDC)          |
 | use proxy             | use REDCap system proxy for http(s) |
 
+
+**Note**: For development within Docker (using the [redcap-docker-compose](https://github.com/123andy/redcap-docker-compose/tree/master) repository), the `allowed REDCap domain` should be set to `localhost` (default) so that the `login()` method in the file [`PseudoService.php`](./PseudoService.php) can work properly.
 ## Project Configuration
 
 - gPAS domain: specifiy gPAS domain for creating studyIDs
 - additional fields for setting the user rights for specific roles:
   ![](docs/project_config1.png)
+  **Note:** In your project, select `Designer` and `+ Create` the instruments `tc_access` and `tc_impexp` in order to make the external module accessible.
