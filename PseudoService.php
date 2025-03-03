@@ -46,8 +46,14 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // API Authentication
         $this->authorization_url = $this->getSystemSetting("authorization_url");
-        $this->client_id = $this->getSystemSetting("client_id");    // The client ID assigned to you by the provider
-        $this->client_secret = $this->getSystemSetting("secret");    // The client password assigned to you by the provider
+        $this->client_id = $this->getSystemSetting("client_id");       // The client ID assigned to you by the provider
+        $this->client_secret = $this->getSystemSetting("secret");      // The client password assigned to you by the provider
+        $this->login_option = $this->getSystemSetting("login_option"); // The client authentication type, either "oauth" (default) or "basic" auth
+
+        if (strlen($this->getSystemSetting("login_option")) == 0) {
+            $this->login_option = 'oauth';
+        }
+
 
         // namespace for session variables
         $this->session = strtolower($this->getModuleName());
@@ -67,9 +73,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $this->proxy .= ':'.$proxy_tmp['port'];
             }
         }
-
-        //TODO: generate field in UI for oauth or basic login
-        $this->login_stuff = '';
 
         // default: max count of search hits
         $this->maxcnt = 50;
@@ -93,9 +96,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
      * @access  public
      * @return void
      */
-    public function login($loginOption='oauth') {
-        //TODO: outsource param to redcap module UI options
-        $this->login_stuff = $loginOption;
+    public function login() {
 
         // verify allowed domain
         if ($GLOBALS['_SERVER']['SERVER_NAME'] != $this->getSystemSetting("allowed_domain")) {
@@ -103,10 +104,10 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
        }
 
         // call default oauth logic
-        if ($loginOption == 'oauth') {
+        if ($this->login_option == 'oauth') {
            $this->_login_oauth();
 
-        } elseif ($loginOption == 'basic') {
+        } elseif ($this->login_option == 'basic') {
             $this->_login_basic();
         }
     }
@@ -208,7 +209,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
      * @return void
      */
     protected function _login_basic() {
-       echo "--basic login logic " . $this->login_stuff . " --";
+        //? is this function even required?
+        echo "--login logic for auth type: " . $this->login_option . " --";
     }
 
     /**
@@ -256,31 +258,49 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }
         if (strlen($url) == 0) return (false);
 
-        // get access token from session
+        echo "von soapCall aus die die url: ". $url . " <-done und Service " . $psService . " <-";
+        
+        //TODO: if condition inserted for test
+        if ($this->login_option == 'oauth') {
+            //todo: separate oauth logic
+            // get access token from session
+            if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
+                $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
+            } else {
+                return (false);
+            }
 
-        echo "von soapCall aus die loginOption: ". $this->$loginOption . " <-done";
+            $curl_options = array(
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => "POST",
+                CURLOPT_POSTFIELDS => $sXML,
+                CURLOPT_HTTPHEADER => array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken),
+                CURLOPT_PROXY =>  $this->curl_proxy,
+                CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
+            );
 
-        if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
-            $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
-        } else {
-            return (false);
+        } elseif ($this->login_option == 'basic') {
+            // TODO change UI fields for basic auth 
+            $user_pw = $this->client_id . ":" . $this->client_secret;
+            $curl_options = array(
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => "POST",
+                CURLOPT_POSTFIELDS => $sXML,
+                CURLOPT_HTTPHEADER => array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw)),
+                CURLOPT_PROXY =>  $this->curl_proxy,
+                CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
+            );
         }
-
         // debug
         //print('<pre>'.htmlspecialchars($sXML).'</pre>');
 
-        //TODO: insert Basic Auth instead of Bearer
+
         // curl call
         $curl = curl_init();
-        curl_setopt_array($curl, array(
-          CURLOPT_URL => $url,
-          CURLOPT_RETURNTRANSFER => true,
-          CURLOPT_CUSTOMREQUEST => "POST",
-          CURLOPT_POSTFIELDS => $sXML,
-          CURLOPT_HTTPHEADER => array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken),
-          CURLOPT_PROXY =>  $this->curl_proxy,
-          CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
-        ));
+        curl_setopt_array($curl, $curl_options);
+
 
         $response = curl_exec($curl);
         $curl_info = curl_getinfo($curl);
@@ -304,6 +324,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $plainXML = PseudoService::mungXML($response);
         $arrayResult = json_decode(json_encode(SimpleXML_Load_String($plainXML, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
         // omit first two levels of response
+
+        //TODO error: curl logic changes affected the e-pix logic (see notes)
         $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
         $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
 
