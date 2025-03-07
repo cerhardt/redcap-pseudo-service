@@ -259,10 +259,20 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if (strlen($url) == 0) return (false);
 
         echo "von soapCall aus die die url: ". $url . " <-done und Service " . $psService . " <-";
+
+        // set core curl options
+        $curl_options = array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $sXML,
+            CURLOPT_PROXY =>  $this->curl_proxy,
+            CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
+        );
         
         //TODO: if condition inserted for test
         if ($this->login_option == 'oauth') {
-            //todo: separate oauth logic
+            // todo: separate oauth logic
             // get access token from session
             if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
                 $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
@@ -270,28 +280,14 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 return (false);
             }
 
-            $curl_options = array(
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CUSTOMREQUEST => "POST",
-                CURLOPT_POSTFIELDS => $sXML,
-                CURLOPT_HTTPHEADER => array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken),
-                CURLOPT_PROXY =>  $this->curl_proxy,
-                CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
-            );
+            $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken);
 
         } elseif ($this->login_option == 'basic') {
             // TODO change UI fields for basic auth 
             $user_pw = $this->client_id . ":" . $this->client_secret;
-            $curl_options = array(
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CUSTOMREQUEST => "POST",
-                CURLOPT_POSTFIELDS => $sXML,
-                CURLOPT_HTTPHEADER => array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw)),
-                CURLOPT_PROXY =>  $this->curl_proxy,
-                CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
-            );
+
+            //TODO: update according to epix and sap credentials
+            $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw));
         }
         // debug
         //print('<pre>'.htmlspecialchars($sXML).'</pre>');
@@ -309,15 +305,15 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // user is authenticated, but has the wrong scope
         if ($curl_info['http_code'] == '401') {
-          throw new \Exception(strtoupper($psService).': Anmeldung fehlgeschlagen!');
+            throw new \Exception(strtoupper($psService).': Anmeldung fehlgeschlagen!');
         }
         if ($curl_info['http_code'] == '403') {
-          throw new \Exception(strtoupper($psService).': keine Berechtigung!');
+            throw new \Exception(strtoupper($psService).': keine Berechtigung!');
         }
 
         // curl error
         if ($err) {
-          throw new \Exception(strtoupper($psService).': '.$err);
+            throw new \Exception(strtoupper($psService).': '.$err);
         }
 
         // convert xml to array
@@ -325,7 +321,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $arrayResult = json_decode(json_encode(SimpleXML_Load_String($plainXML, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
         // omit first two levels of response
 
-        //TODO error: curl logic changes affected the e-pix logic (see notes)
         $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
         $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
 
