@@ -228,6 +228,19 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
   } // search
 
   // ================================================================================================
+    // gpas_only logic for PSN creation
+    // ================================================================================================
+    if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
+        $sPSN = $oPseudoService->getOrCreatePseudonymFor($_POST['known_ID']);
+        // redcap log
+        Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['known_ID'].": ".$sPSN, "known_ID: psn created");
+        // save pseudonym in REDCap study
+        $oPseudoService->createREDCap($sPSN);  
+        // redcap log
+        Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved"); 
+    }
+
+  // ================================================================================================
   // create mode
   // ================================================================================================
   if ($sMode == 'create' && PseudoService::isAllowed('create')) {
@@ -894,6 +907,12 @@ if (PseudoService::isAllowed('search')) {
           <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
         </li>
 <?php   } ?>
+<?php   // ! new tab for gPAS only logic, i.e. generate pseudonym based on knowledge of user about the required ID (either MPI or pat ID)
+        if (PseudoService::isAllowed('create')) { ?>
+        <li class="nav-item">
+          <a class="nav-link<?php if ($sMode == 'gpas_only') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=gpas_only">PSN erzeugen</a>
+        </li>
+<?php   } ?>
       </ul><br />
 <?php
 
@@ -964,6 +983,29 @@ if (PseudoService::isAllowed('search')) {
     <?php
     } // end search mode 
 } // end isAllowed('search')
+
+
+// ! mode gpas_only should have the same access rights as create?
+// vars: MPI stored in known_ID (which can be either MPI or Pat-ID)
+if ($sMode == 'gpas_only'
+    && PseudoService::isAllowed('create')) { ?>
+    <h5>Pseudonym erzeugen</h5>
+    <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
+    <div class="form-group row">
+      <label for="ish_id" class="col-sm-2 col-form-label"> MPI</label>
+      <div class="col-sm-5">
+        <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-sm-offset-2 col-sm-5">
+        <button type="submit" class="btn btn-secondary" name="submit">Generieren</button>
+      </div>
+    </div>
+    <input type="hidden" name="mode" value="gpas_only">
+    </form>
+<?php
+} // end gpas_only mode 
 
 // ================================================================================================
 // display create form
