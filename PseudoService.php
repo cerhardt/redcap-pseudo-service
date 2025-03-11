@@ -199,6 +199,14 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 exit($e->getMessage());
             }
         }
+
+        // redirect to data entry page after login
+        // ! moved from index.php because of wrong redirect in basic auth logic
+        if (isset($_SESSION[$oSAPPatientSearch->session]['redirect'])) {
+            $redirect = $_SESSION[$oSAPPatientSearch->session]['redirect'];
+            unset($_SESSION[$oSAPPatientSearch->session]['redirect']);
+            redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
+        }
     }
 
     /**
@@ -258,8 +266,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }
         if (strlen($url) == 0) return (false);
 
-        echo "von soapCall aus die die url: ". $url . " <-done und Service " . $psService . " <-";
-
         // set core curl options
         $curl_options = array(
             CURLOPT_URL => $url,
@@ -286,7 +292,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             // TODO change UI fields for basic auth 
             $user_pw = $this->client_id . ":" . $this->client_secret;
 
-            //TODO: update according to epix and sap credentials
+            //TODO: update according to sap credentials
             $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw));
         }
         // debug

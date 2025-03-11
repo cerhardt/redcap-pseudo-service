@@ -38,12 +38,6 @@ $oSAPPatientSearch = new SAPPatientSearch();
 // login
 $oSAPPatientSearch->login();
 
-// redirect to data entry page after login
-if (isset($_SESSION[$oSAPPatientSearch->session]['redirect'])) {
-    $redirect = $_SESSION[$oSAPPatientSearch->session]['redirect'];
-    unset($_SESSION[$oSAPPatientSearch->session]['redirect']);
-    redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
-}
 
 // E-PIX/gPAS class
 $oPseudoService = new EPIX_gPAS();
