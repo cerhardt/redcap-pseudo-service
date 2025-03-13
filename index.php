@@ -8,8 +8,8 @@ use \Logging as Logging;
 use \RCView as RCView;
 
 $sExit = '';
-// exit if gPAS domain is not configured
-if (strlen($module->getProjectSetting("gpas_domain")) == 0) {
+// exit if gPAS domain and auth type is not configured
+if (strlen($module->getProjectSetting("gpas_domain")) == 0 && strlen($module->getProjectSetting("auth_type")) == 0) {
     $sExit = 'please configure the module first!';
 }
 
@@ -225,6 +225,9 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
     // gpas_only logic for PSN creation
     // ================================================================================================
     if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
+        // check the knownID input
+        $knownID = $_POST['known_ID'];
+
         $sPSN = $oPseudoService->getOrCreatePseudonymFor($_POST['known_ID']);
         // redcap log
         Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['known_ID'].": ".$sPSN, "known_ID: psn created");
@@ -980,25 +983,43 @@ if (PseudoService::isAllowed('search')) {
 
 
 // ! mode gpas_only should have the same access rights as create?
-// vars: MPI stored in known_ID (which can be either MPI or Pat-ID)
-if ($sMode == 'gpas_only'
-    && PseudoService::isAllowed('create')) { ?>
-    <h5>Pseudonym erzeugen</h5>
-    <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
-    <div class="form-group row">
-      <label for="ish_id" class="col-sm-2 col-form-label"> MPI</label>
-      <div class="col-sm-5">
-        <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
-      </div>
-    </div>
-    <div class="form-group row">
-      <div class="col-sm-offset-2 col-sm-5">
-        <button type="submit" class="btn btn-secondary" name="submit">Generieren</button>
-      </div>
-    </div>
-    <input type="hidden" name="mode" value="gpas_only">
-    </form>
-<?php
+if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
+    // ID stored in known_ID (which can be either MPI or Pat-ID)
+    ?>        
+        <h5>Pseudonym erzeugen</h5>
+        <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
+        <div class="form-group row">
+        <label for="ish_id" class="col-sm-2 col-form-label"> Pat. ID <br>(9-stellig)</label>
+        <div class="col-sm-5">
+            <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
+        </div>
+        </div>
+        <div class="form-group row">
+        <div class="col-sm-offset-2 col-sm-5">
+            <button type="submit" class="btn btn-secondary" id="submitGenButton" name="submit" disabled>Generieren</button>
+        </div>
+        </div>
+        <input type="hidden" name="mode" value="gpas_only">
+        </form>
+        <script>
+            // javascript to enable generation button only if regex matches 
+            document.addEventListener("DOMContentLoaded", function () {
+                let inputField = document.getElementById("known_ID");
+                let submitButton = document.getElementById("submitGenButton");
+                //TODO: logic for check digit acc. to DIN ISO 7064
+                // ! currently pat-id without check digit, i.e. 9 digits
+                let regex = /^[0-9]{9}$/;
+
+                inputField.addEventListener("keyup", function () {
+                    if (regex.test(inputField.value)) {
+                        submitButton.disabled = false;
+                    } else {
+                        submitButton.disabled = true;
+                    }
+                });
+            });
+        </script>
+    <?php
 } // end gpas_only mode 
 
 // ================================================================================================

@@ -48,11 +48,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->authorization_url = $this->getSystemSetting("authorization_url");
         $this->client_id = $this->getSystemSetting("client_id");       // The client ID assigned to you by the provider
         $this->client_secret = $this->getSystemSetting("secret");      // The client password assigned to you by the provider
-        $this->login_option = $this->getSystemSetting("login_option"); // The client authentication type, either "oauth" (default) or "basic" auth
-
-        if (strlen($this->getSystemSetting("login_option")) == 0) {
-            $this->login_option = 'oauth';
-        }
+        $this->basic_id = $this->getSystemSetting("basic_name");
+        $this->basic_secret = $this->getSystemSetting("basic_secret");
+        $this->login_option = $this->getSystemSetting('auth_type');    // The client authentication type, either "OAuth2"  or "Basic Auth" auth
 
 
         // namespace for session variables
@@ -107,8 +105,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if ($this->login_option == 'oauth') {
            $this->_login_oauth();
 
-        } elseif ($this->login_option == 'basic') {
-            $this->_login_basic();
         }
     }
 
@@ -210,18 +206,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     }
 
     /**
-     * Login to API Gateway with Basic Auth
-     * 
-     * @author Egidia Cenko
-     * @access protected
-     * @return void
-     */
-    protected function _login_basic() {
-        //? is this function even required?
-        echo "--login logic for auth type: " . $this->login_option . " --";
-    }
-
-    /**
     * Curl SOAP call of E-PIX/gPAS/SAP webservice
     *
     * @author  Christian Erhardt
@@ -290,7 +274,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         } elseif ($this->login_option == 'basic') {
             // TODO change UI fields for basic auth 
-            $user_pw = $this->client_id . ":" . $this->client_secret;
+            $user_pw = $this->basic_id . ":" . $this->basic_secret;
 
             //TODO: update according to sap credentials
             $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw));
