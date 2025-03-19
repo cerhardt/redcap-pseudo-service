@@ -987,7 +987,7 @@ if ($module->getSystemSetting('auth_type') == 'basic') {
     // ID stored in known_ID (which can be either MPI or Pat-ID)
     ?>        
         <h5>Pseudonym erzeugen</h5>
-        <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
+        <form style="max-width:750px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
             <div class="form-group row">
                 <label for="known_ID" class="col-sm-2 col-form-label"> Pat. ID <br>(10-stellig)</label>
                 <div class="col-sm-5">
