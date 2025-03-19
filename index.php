@@ -884,7 +884,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 // ================================================================================================
 // display navigation
 // ================================================================================================
-if (PseudoService::isAllowed('search') && $module->getSystemSetting('auth_type') == 'lala') {
+if (PseudoService::isAllowed('search') && $module->getSystemSetting('auth_type') == 'oauth') {
 ?>
       <ul class="nav nav-pills">
         <li class="nav-item">
@@ -993,12 +993,12 @@ if ($module->getSystemSetting('auth_type') == 'basic') {
     // ID stored in known_ID (which can be either MPI or Pat-ID)
     ?>        
         <h5>Pseudonym erzeugen</h5>
-        <form style="max-width:750px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
+        <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
             <div class="form-group row">
                 <label for="known_ID" class="col-sm-2 col-form-label"> Pat. ID <br>(10-stellig)</label>
                 <div class="col-sm-5">
                     <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
-                    <span id="error-msg" style="color:red; display:none;">Ungültige Eingabe: Pat.-IDs beginnen nicht mit 0</span>
+                    <span id="error-msg" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.</span>
                 </div>
             </div>
             <div class="form-group row">
