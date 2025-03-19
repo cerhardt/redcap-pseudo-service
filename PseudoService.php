@@ -6,6 +6,7 @@ use \RCView as RCView;
 
 include_once('SAPPatientSearch.php');
 include_once('EPIX_gPAS.php');
+include_once('CheckDigit.php');
 
 class PseudoService extends \ExternalModules\AbstractExternalModule {
 	public $error;
@@ -50,7 +51,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->client_secret = $this->getSystemSetting("secret");      // The client password assigned to you by the provider
         $this->basic_id = $this->getSystemSetting("basic_name");
         $this->basic_secret = $this->getSystemSetting("basic_secret");
-        $this->login_option = $this->getSystemSetting('auth_type');    // The client authentication type, either "OAuth2"  or "Basic Auth" auth
+        $this->login_option = $this->getSystemSetting('auth_type');    // The client authentication type, either "oauth" (="OAuth2")  or "basic" (="Basic Auth") auth
 
 
         // namespace for session variables
@@ -260,9 +261,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
         );
         
-        //TODO: if condition inserted for test
         if ($this->login_option == 'oauth') {
-            // todo: separate oauth logic
             // get access token from session
             if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
                 $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
@@ -273,7 +272,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken);
 
         } elseif ($this->login_option == 'basic') {
-            // TODO change UI fields for basic auth 
             $user_pw = $this->basic_id . ":" . $this->basic_secret;
 
             //TODO: update according to sap credentials

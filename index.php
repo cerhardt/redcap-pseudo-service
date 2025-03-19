@@ -9,7 +9,7 @@ use \RCView as RCView;
 
 $sExit = '';
 // exit if gPAS domain and auth type is not configured
-if (strlen($module->getProjectSetting("gpas_domain")) == 0 && strlen($module->getProjectSetting("auth_type")) == 0) {
+if (strlen($module->getProjectSetting("gpas_domain")) == 0 || strlen($module->getProjectSetting("auth_type")) == 0) {
     $sExit = 'please configure the module first!';
 }
 
@@ -220,22 +220,28 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             unset($aVornameSort);
         }
   } // search
+  
 
-  // ================================================================================================
+    // ================================================================================================
     // gpas_only logic for PSN creation
     // ================================================================================================
     if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
-        // check the knownID input
-        $knownID = $_POST['known_ID'];
-
-        $sPSN = $oPseudoService->getOrCreatePseudonymFor($_POST['known_ID']);
-        // redcap log
-        Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['known_ID'].": ".$sPSN, "known_ID: psn created");
-        // save pseudonym in REDCap study
-        $oPseudoService->createREDCap($sPSN);  
-        // redcap log
-        Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved"); 
+        // validate known_ID input
+        if (CheckDigit::validateID($_POST['known_ID'])) {
+            // cut off check digit and use pat id only for pseudonym generation
+            $patID = substr($_POST['known_ID'], 0, 9);
+            
+            $sPSN = $oPseudoService->getOrCreatePseudonymFor($patID);
+            // redcap log
+            Logging::logEvent('', $module->getModuleName(), "OTHER", '', $patID.": ".$sPSN, "known_ID: psn created");
+            // save pseudonym in REDCap study
+            $oPseudoService->createREDCap($sPSN,'', $_POST['known_ID']);  
+            // redcap log
+            Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved"); 
+        }
+        //TODO: extend logic for check digits valdidation and calculation
     }
+    
 
   // ================================================================================================
   // create mode
@@ -872,7 +878,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 // ================================================================================================
 // display navigation
 // ================================================================================================
-if (PseudoService::isAllowed('search')) {
+if (PseudoService::isAllowed('search') && $module->getSystemSetting('auth_type') == 'lala') {
 ?>
       <ul class="nav nav-pills">
         <li class="nav-item">
@@ -902,12 +908,6 @@ if (PseudoService::isAllowed('search')) {
 <?php   if (PseudoService::isAllowed('import')) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
-        </li>
-<?php   } ?>
-<?php   // ! new tab for gPAS only logic, i.e. generate pseudonym based on knowledge of user about the required ID (either MPI or pat ID)
-        if (PseudoService::isAllowed('create')) { ?>
-        <li class="nav-item">
-          <a class="nav-link<?php if ($sMode == 'gpas_only') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=gpas_only">PSN erzeugen</a>
         </li>
 <?php   } ?>
       </ul><br />
@@ -983,33 +983,40 @@ if (PseudoService::isAllowed('search')) {
 
 
 // ! mode gpas_only should have the same access rights as create?
-if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
+if ($module->getSystemSetting('auth_type') == 'basic') {
     // ID stored in known_ID (which can be either MPI or Pat-ID)
     ?>        
         <h5>Pseudonym erzeugen</h5>
         <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
-        <div class="form-group row">
-        <label for="ish_id" class="col-sm-2 col-form-label"> Pat. ID <br>(9-stellig)</label>
-        <div class="col-sm-5">
-            <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
-        </div>
-        </div>
-        <div class="form-group row">
-        <div class="col-sm-offset-2 col-sm-5">
-            <button type="submit" class="btn btn-secondary" id="submitGenButton" name="submit" disabled>Generieren</button>
-        </div>
-        </div>
-        <input type="hidden" name="mode" value="gpas_only">
+            <div class="form-group row">
+                <label for="known_ID" class="col-sm-2 col-form-label"> Pat. ID <br>(10-stellig)</label>
+                <div class="col-sm-5">
+                    <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
+                    <span id="error-msg" style="color:red; display:none;">Ungültige Eingabe: Pat.-IDs beginnen nicht mit 0</span>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-offset-2 col-sm-5">
+                    <button type="submit" class="btn btn-secondary" id="submitGenButton" name="submit" disabled>Generieren</button>
+                </div>
+            </div>
+            <input type="hidden" name="mode" value="gpas_only">
         </form>
-        <script>
+        <script type="text/javascript">
             // javascript to enable generation button only if regex matches 
             document.addEventListener("DOMContentLoaded", function () {
                 let inputField = document.getElementById("known_ID");
                 let submitButton = document.getElementById("submitGenButton");
-                //TODO: logic for check digit acc. to DIN ISO 7064
-                // ! currently pat-id without check digit, i.e. 9 digits
-                let regex = /^[0-9]{9}$/;
+                let errorMsg = document.getElementById("error-msg");
+                // ideal input: 10 digits ID (pat ID + check digit, no leading 0 accepted)
+                let regex = /^[1-9]{1}[0-9]{9}$/;
 
+                // display error message on leading 0
+                inputField.addEventListener("input", function() {
+                    errorMsg.style.display = inputField.value.startsWith("0") ? "inline" : "none";
+                });
+
+                // activate generation button on valid ID
                 inputField.addEventListener("keyup", function () {
                     if (regex.test(inputField.value)) {
                         submitButton.disabled = false;
