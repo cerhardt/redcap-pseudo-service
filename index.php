@@ -234,8 +234,14 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             $sPSN = $oPseudoService->getOrCreatePseudonymFor($patID);
             // redcap log
             Logging::logEvent('', $module->getModuleName(), "OTHER", '', $patID.": ".$sPSN, "known_ID: psn created");
-            // save pseudonym in REDCap study
-            $oPseudoService->createREDCap($sPSN,'', $_POST['known_ID']);  
+
+            if ($module->getProjectSetting("save_sap_id") == true) {
+                // save pseudonym + sap id from provided field in REDCap study
+                $oPseudoService->createREDCap($sPSN,'', $_POST['known_ID']);  
+            } else {
+                // save pseudonym in REDCap study
+                $oPseudoService->createREDCap($sPSN); 
+            }
             // redcap log
             Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved"); 
         }
