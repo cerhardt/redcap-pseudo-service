@@ -93,15 +93,15 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if (strlen($this->authorization_url) == 0) {
             exit('Authorisierungs URL fehlt!');
         }
-        $host = parse_url($this->authorization_url, PHP_URL_HOST);
+        $host = rtrim($this->authorization_url, '/');
 
         $provider = new \League\OAuth2\Client\Provider\GenericProvider([
             'clientId'                => $this->client_id,    // The client ID assigned to you by the provider
             'clientSecret'            => $this->client_secret,    // The client password assigned to you by the provider
             'redirectUri'             => $this->callbackUrl,
-            'urlAuthorize'            => 'https://'.$host.'/authorize',
-            'urlAccessToken'          => 'https://'.$host.'/token',
-            'urlResourceOwnerDetails' => 'https://'.$host,
+            'urlAuthorize'            => $host.'/authorize',
+            'urlAccessToken'          => $host.'/token',
+            'urlResourceOwnerDetails' => $host,
             'proxy'                   => $this->proxy,
             'verify'                  => false,
             'scopes' => $this->sap_scope.' '.$this->gpas_scope.' '.$this->gpas_domain_scope.' '.$this->epix_scope
