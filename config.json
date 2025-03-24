@@ -202,6 +202,34 @@
             "type": "text"
         },
         {
+            "key": "auth_type",
+            "name": "Login Authentication Type",
+            "required": true,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "oauth",
+                "name": "OAuth2"
+              },
+              {
+                "value": "basic",
+                "name": "Basic Auth"
+              }
+            ]
+        },
+        {
+            "key": "basic_name",
+            "name": "Basic Auth username",
+            "required": true,
+            "type": "password"
+        },
+        {
+            "key": "basic_secret",
+            "name": "Basic Auth secret",
+            "required": true,
+            "type": "password"
+        },
+        {
             "key": "authorization_url",
             "name": "Authorization Server URL",
             "required": true,

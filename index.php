@@ -8,8 +8,8 @@ use \Logging as Logging;
 use \RCView as RCView;
 
 $sExit = '';
-// exit if gPAS domain is not configured
-if (strlen($module->getProjectSetting("gpas_domain")) == 0) {
+// exit if gPAS domain and auth type is not configured
+if (strlen($module->getProjectSetting("gpas_domain")) == 0 || strlen($module->getProjectSetting("auth_type")) == 0) {
     $sExit = 'please configure the module first!';
 }
 
@@ -38,12 +38,6 @@ $oSAPPatientSearch = new SAPPatientSearch();
 // login
 $oSAPPatientSearch->login();
 
-// redirect to data entry page after login
-if (isset($_SESSION[$oSAPPatientSearch->session]['redirect'])) {
-    $redirect = $_SESSION[$oSAPPatientSearch->session]['redirect'];
-    unset($_SESSION[$oSAPPatientSearch->session]['redirect']);
-    redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
-}
 
 // E-PIX/gPAS class
 $oPseudoService = new EPIX_gPAS();
@@ -226,6 +220,34 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             unset($aVornameSort);
         }
   } // search
+  
+
+    // ================================================================================================
+    // gpas_only logic for PSN creation
+    // ================================================================================================
+    if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
+        // validate known_ID input
+        if (CheckDigit::validateID($_POST['known_ID'])) {
+            // cut off check digit and use pat id only for pseudonym generation
+            $patID = substr($_POST['known_ID'], 0, 9);
+            
+            $sPSN = $oPseudoService->getOrCreatePseudonymFor($patID);
+            // redcap log
+            Logging::logEvent('', $module->getModuleName(), "OTHER", '', $patID.": ".$sPSN, "known_ID: psn created");
+
+            if ($module->getProjectSetting("save_sap_id") == true) {
+                // save pseudonym + sap id from provided field in REDCap study
+                $oPseudoService->createREDCap($sPSN,'', $_POST['known_ID']);  
+            } else {
+                // save pseudonym in REDCap study
+                $oPseudoService->createREDCap($sPSN); 
+            }
+            // redcap log
+            Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved"); 
+        }
+        //TODO: extend logic for check digits valdidation and calculation
+    }
+    
 
   // ================================================================================================
   // create mode
@@ -862,7 +884,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 // ================================================================================================
 // display navigation
 // ================================================================================================
-if (PseudoService::isAllowed('search')) {
+if (PseudoService::isAllowed('search') && $module->getSystemSetting('auth_type') == 'oauth') {
 ?>
       <ul class="nav nav-pills">
         <li class="nav-item">
@@ -964,6 +986,54 @@ if (PseudoService::isAllowed('search')) {
     <?php
     } // end search mode 
 } // end isAllowed('search')
+
+
+// ! mode gpas_only should have the same access rights as create?
+if ($module->getSystemSetting('auth_type') == 'basic') {
+    // ID stored in known_ID (which can be either MPI or Pat-ID)
+    ?>        
+        <h5>Pseudonym erzeugen</h5>
+        <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
+            <div class="form-group row">
+                <label for="known_ID" class="col-sm-2 col-form-label"> Pat. ID <br>(10-stellig)</label>
+                <div class="col-sm-5">
+                    <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
+                    <span id="error-msg" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.</span>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-offset-2 col-sm-5">
+                    <button type="submit" class="btn btn-secondary" id="submitGenButton" name="submit" disabled>Generieren</button>
+                </div>
+            </div>
+            <input type="hidden" name="mode" value="gpas_only">
+        </form>
+        <script type="text/javascript">
+            // javascript to enable generation button only if regex matches 
+            document.addEventListener("DOMContentLoaded", function () {
+                let inputField = document.getElementById("known_ID");
+                let submitButton = document.getElementById("submitGenButton");
+                let errorMsg = document.getElementById("error-msg");
+                // ideal input: 10 digits ID (pat ID + check digit, no leading 0 accepted)
+                let regex = /^[1-9]{1}[0-9]{9}$/;
+
+                // display error message on leading 0
+                inputField.addEventListener("input", function() {
+                    errorMsg.style.display = inputField.value.startsWith("0") ? "inline" : "none";
+                });
+
+                // activate generation button on valid ID
+                inputField.addEventListener("keyup", function () {
+                    if (regex.test(inputField.value)) {
+                        submitButton.disabled = false;
+                    } else {
+                        submitButton.disabled = true;
+                    }
+                });
+            });
+        </script>
+    <?php
+} // end gpas_only mode 
 
 // ================================================================================================
 // display create form

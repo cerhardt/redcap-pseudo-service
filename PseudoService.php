@@ -6,6 +6,7 @@ use \RCView as RCView;
 
 include_once('SAPPatientSearch.php');
 include_once('EPIX_gPAS.php');
+include_once('CheckDigit.php');
 
 class PseudoService extends \ExternalModules\AbstractExternalModule {
 	public $error;
@@ -46,8 +47,12 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // API Authentication
         $this->authorization_url = $this->getSystemSetting("authorization_url");
-        $this->client_id = $this->getSystemSetting("client_id");    // The client ID assigned to you by the provider
-        $this->client_secret = $this->getSystemSetting("secret");    // The client password assigned to you by the provider
+        $this->client_id = $this->getSystemSetting("client_id");       // The client ID assigned to you by the provider
+        $this->client_secret = $this->getSystemSetting("secret");      // The client password assigned to you by the provider
+        $this->basic_id = $this->getSystemSetting("basic_name");
+        $this->basic_secret = $this->getSystemSetting("basic_secret");
+        $this->login_option = $this->getSystemSetting('auth_type');    // The client authentication type, either "oauth" (="OAuth2")  or "basic" (="Basic Auth") auth
+
 
         // namespace for session variables
         $this->session = strtolower($this->getModuleName());
@@ -82,19 +87,36 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->error = '';
     }
 
+    /**
+     * Login Options for API Gateway
+     *
+     * @author  Egidia Cenko
+     * @param string login option: oauth (default) / basic
+     * @access  public
+     * @return void
+     */
+    public function login() {
+
+        // verify allowed domain
+        if ($GLOBALS['_SERVER']['SERVER_NAME'] != $this->getSystemSetting("allowed_domain")) {
+            exit('Zugriff verweigert!');
+       }
+
+        // call default oauth logic
+        if ($this->login_option == 'oauth') {
+           $this->_login_oauth();
+
+        }
+    }
 
     /**
     * Login to API Gateway with OAuth2 (authorization code grant)
     *
     * @author  Christian Erhardt
-    * @access  public
+    * @access  protected
     * @return void
     */
-    public function login() {
-        // verify allowed domain
-        if ($GLOBALS['_SERVER']['SERVER_NAME'] != $this->getSystemSetting("allowed_domain")) {
-            exit('Zugriff verweigert!');
-       }
+    protected function _login_oauth() {
         if (strlen($this->authorization_url) == 0) {
             exit('Authorisierungs URL fehlt!');
         }
@@ -173,7 +195,14 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 // Failed to get the access token or user details.
                 exit($e->getMessage());
             }
+        }
 
+        // redirect to data entry page after login
+        // ! moved from index.php because of wrong redirect in basic auth logic
+        if (isset($_SESSION[$oSAPPatientSearch->session]['redirect'])) {
+            $redirect = $_SESSION[$oSAPPatientSearch->session]['redirect'];
+            unset($_SESSION[$oSAPPatientSearch->session]['redirect']);
+            redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
         }
     }
 
@@ -222,27 +251,40 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }
         if (strlen($url) == 0) return (false);
 
-        // get access token from session
-        if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
-            $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
-        } else {
-            return (false);
-        }
+        // set core curl options
+        $curl_options = array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $sXML,
+            CURLOPT_PROXY =>  $this->curl_proxy,
+            CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
+        );
+        
+        if ($this->login_option == 'oauth') {
+            // get access token from session
+            if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
+                $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
+            } else {
+                return (false);
+            }
 
+            $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken);
+
+        } elseif ($this->login_option == 'basic') {
+            $user_pw = $this->basic_id . ":" . $this->basic_secret;
+
+            //TODO: update according to sap credentials
+            $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw));
+        }
         // debug
         //print('<pre>'.htmlspecialchars($sXML).'</pre>');
 
+
         // curl call
         $curl = curl_init();
-        curl_setopt_array($curl, array(
-          CURLOPT_URL => $url,
-          CURLOPT_RETURNTRANSFER => true,
-          CURLOPT_CUSTOMREQUEST => "POST",
-          CURLOPT_POSTFIELDS => $sXML,
-          CURLOPT_HTTPHEADER => array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken),
-          CURLOPT_PROXY =>  $this->curl_proxy,
-          CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
-        ));
+        curl_setopt_array($curl, $curl_options);
+
 
         $response = curl_exec($curl);
         $curl_info = curl_getinfo($curl);
@@ -251,21 +293,22 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // user is authenticated, but has the wrong scope
         if ($curl_info['http_code'] == '401') {
-          throw new \Exception(strtoupper($psService).': Anmeldung fehlgeschlagen!');
+            throw new \Exception(strtoupper($psService).': Anmeldung fehlgeschlagen!');
         }
         if ($curl_info['http_code'] == '403') {
-          throw new \Exception(strtoupper($psService).': keine Berechtigung!');
+            throw new \Exception(strtoupper($psService).': keine Berechtigung!');
         }
 
         // curl error
         if ($err) {
-          throw new \Exception(strtoupper($psService).': '.$err);
+            throw new \Exception(strtoupper($psService).': '.$err);
         }
 
         // convert xml to array
         $plainXML = PseudoService::mungXML($response);
         $arrayResult = json_decode(json_encode(SimpleXML_Load_String($plainXML, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
         // omit first two levels of response
+
         $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
         $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));
 
