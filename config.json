@@ -38,11 +38,28 @@
 
 	"project-settings": [
         {
+            "key": "use_2_gpas_domains",
+            "name": "use two gPAS domains",
+            "super-users-only": true,
+            "type": "checkbox"
+        },
+        {
             "key": "gpas_domain",
             "name": "gPAS domain",
             "required": true,
             "super-users-only": true,
             "type": "text"
+        },
+        {
+            "key": "gpas_domain_2",
+            "name": "gPAS domain 2",
+            "type": "text",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "use_2_gpas_domains",
+                "value": "true"
+            }
         },
         {
             "key": "extern",

@@ -225,6 +225,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
     // ================================================================================================
     // gpas_only logic for PSN creation
     // ================================================================================================
+    // ! mode gpas_only should have the same access rights as create?
     if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
         // validate known_ID input
         if (CheckDigit::validateID($_POST['known_ID'])) {
@@ -884,7 +885,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 // ================================================================================================
 // display navigation
 // ================================================================================================
-if (PseudoService::isAllowed('search') && $module->getSystemSetting('auth_type') == 'oauth') {
+if (PseudoService::isAllowed('search' && $module->getProjectSetting("sap_integrate") === true)
+    //$module->getSystemSetting('auth_type') == 'oauth' && 
+    ) {
 ?>
       <ul class="nav nav-pills">
         <li class="nav-item">
@@ -901,7 +904,7 @@ if (PseudoService::isAllowed('search') && $module->getSystemSetting('auth_type')
           <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
           <?php } ?>
         </li>
-<?php   if (PseudoService::isAllowed('edit')) { ?>
+<?php   if (PseudoService::isAllowed('edit') && $module->getProjectSetting("epix_integrate") === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
         </li>
@@ -988,8 +991,8 @@ if (PseudoService::isAllowed('search') && $module->getSystemSetting('auth_type')
 } // end isAllowed('search')
 
 
-// ! mode gpas_only should have the same access rights as create?
-if ($module->getSystemSetting('auth_type') == 'basic') {
+// gpas_only UI, i.e. no SAP or E-PIX integrated
+if ($module->getSystemSetting('auth_type') == 'basic' && $module->getProjectSetting("sap_integrate") === false && $module->getProjectSetting("epix_integrate") === false ) {
     // ID stored in known_ID (which can be either MPI or Pat-ID)
     ?>        
         <h5>Pseudonym erzeugen</h5>
