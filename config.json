@@ -62,6 +62,12 @@
             }
         },
         {
+            "key": "use_9_digits_pat_id",
+            "name": "allow 9 digits input for Pat.-ID (default: 10 digits)",
+            "type": "checkbox",
+            "super-users-only": true
+        },
+        {
             "key": "extern",
             "name": "use external probands",
             "super-users-only": true,

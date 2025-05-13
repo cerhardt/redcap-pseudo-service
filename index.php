@@ -7,6 +7,8 @@ use \REDCap as REDCap;
 use \Logging as Logging;
 use \RCView as RCView;
 
+include_once('CheckDigit.php');
+
 $sExit = '';
 // exit if gPAS domain and auth type is not configured
 if (strlen($module->getProjectSetting("gpas_domain")) == 0 || strlen($module->getProjectSetting("auth_type")) == 0) {
@@ -47,6 +49,9 @@ $oPseudoService = new EPIX_gPAS();
 $sMode = $_GET['mode'];
 if (isset($_POST['mode'])) {
     $sMode = $_POST['mode'];
+}
+if ($module->getProjectSetting("sap_integrate") === false && $module->getProjectSetting("epix_integrate") === false && strlen($sMode) == 0) {
+    $sMode = 'psn_erzeugen';
 }
 if (strlen($sMode) == 0) {
     $sMode = 'search';
@@ -227,11 +232,10 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
     // ================================================================================================
     // ! mode gpas_only should have the same access rights as create?
     if ($sMode == 'gpas_only' && PseudoService::isAllowed('create')) {
-        // validate known_ID input
-        if (CheckDigit::validateID($_POST['known_ID'])) {
-            // cut off check digit and use pat id only for pseudonym generation
-            $patID = substr($_POST['known_ID'], 0, 9);
-            
+        $validatedID = CheckDigit::validateID($_POST['known_ID']);
+
+        if (strlen($validatedID) === 10) {
+            $patID = substr($validatedID, 0, 9);
             $sPSN = $oPseudoService->getOrCreatePseudonymFor($patID);
             // redcap log
             Logging::logEvent('', $module->getModuleName(), "OTHER", '', $patID.": ".$sPSN, "known_ID: psn created");
@@ -245,8 +249,12 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             }
             // redcap log
             Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved"); 
+
+        } elseif ($validatedID == -1) {
+            // incorrect check digit for given pat id: user feedback and return to index page
+            $_SESSION[$oPseudoService->session]['msg'] = "Die Prüfziffer (d.h. die 10. Stelle) ist nicht korrekt! Erneute Eingabe nötig.";
+            redirect($module->moduleIndex);
         }
-        //TODO: extend logic for check digits valdidation and calculation
     }
     
 
@@ -885,11 +893,12 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 // ================================================================================================
 // display navigation
 // ================================================================================================
-if (PseudoService::isAllowed('search' && $module->getProjectSetting("sap_integrate") === true)
+if (PseudoService::isAllowed('search')
     //$module->getSystemSetting('auth_type') == 'oauth' && 
     ) {
 ?>
       <ul class="nav nav-pills">
+<?php   if ($module->getProjectSetting("sap_integrate") === true) { ?>
         <li class="nav-item">
           <?php if ($sMode == 'search') { ?>
           <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
@@ -904,17 +913,25 @@ if (PseudoService::isAllowed('search' && $module->getProjectSetting("sap_integra
           <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
           <?php } ?>
         </li>
+<?php   } ?>
+<!--TODO: optional navigation element logic for Pat-ID used together with other items in the future, e.g. import or export
+<?php   if ($module->getProjectSetting("sap_integrate") === false && $module->getProjectSetting("epix_integrate") === false) { ?>
+        <li class="nav-item">
+        <a class="nav-link<?php if ($sMode == 'psn_erzeugen') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=psn_erzeugen">Erzeugen</a>
+        </li>
+<?php   } ?>
+ -->
 <?php   if (PseudoService::isAllowed('edit') && $module->getProjectSetting("epix_integrate") === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
         </li>
 <?php   } ?>
-<?php   if (PseudoService::isAllowed('export')) { ?>
+<?php   if (PseudoService::isAllowed('export') && $module->getProjectSetting("sap_integrate") === true && $module->getProjectSetting("epix_integrate") === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=export">Export</a>
         </li>
 <?php   } ?>
-<?php   if (PseudoService::isAllowed('import')) { ?>
+<?php   if (PseudoService::isAllowed('import') && $module->getProjectSetting("sap_integrate") === true && $module->getProjectSetting("epix_integrate") === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
         </li>
@@ -992,16 +1009,20 @@ if (PseudoService::isAllowed('search' && $module->getProjectSetting("sap_integra
 
 
 // gpas_only UI, i.e. no SAP or E-PIX integrated
-if ($module->getSystemSetting('auth_type') == 'basic' && $module->getProjectSetting("sap_integrate") === false && $module->getProjectSetting("epix_integrate") === false ) {
+if ($sMode == 'psn_erzeugen' && 
+    $module->getSystemSetting('auth_type') == 'basic' && 
+    $module->getProjectSetting("sap_integrate") === false && 
+    $module->getProjectSetting("epix_integrate") === false) {
     // ID stored in known_ID (which can be either MPI or Pat-ID)
     ?>        
         <h5>Pseudonym erzeugen</h5>
         <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
             <div class="form-group row">
-                <label for="known_ID" class="col-sm-2 col-form-label"> Pat. ID <br>(10-stellig)</label>
+                <label for="known_ID" class="col-sm-2 col-form-label"> Pat. ID <br><?php echo $module->getProjectSetting("use_9_digits_pat_id") ? '(9-/10-stellig erlaubt)' : '(10-stellig)'; ?>
+            </label>
                 <div class="col-sm-5">
                     <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
-                    <span id="error-msg" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.</span>
+                    <span id="error-msg-leading-0" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.</span>
                 </div>
             </div>
             <div class="form-group row">
@@ -1016,13 +1037,28 @@ if ($module->getSystemSetting('auth_type') == 'basic' && $module->getProjectSett
             document.addEventListener("DOMContentLoaded", function () {
                 let inputField = document.getElementById("known_ID");
                 let submitButton = document.getElementById("submitGenButton");
-                let errorMsg = document.getElementById("error-msg");
+                let errorMsg = document.getElementById("error-msg-leading-0");
+                
                 // ideal input: 10 digits ID (pat ID + check digit, no leading 0 accepted)
                 let regex = /^[1-9]{1}[0-9]{9}$/;
+                
+                // allow 9 digit input as well if activated in settings 
+                var use_9_digits = "<?php echo json_encode($module->getProjectSetting("use_9_digits_pat_id")); ?>";
+                if (use_9_digits == "true") {
+                    regex = /^[1-9]{1}[0-9]{8,9}$/;
+                }
 
                 // display error message on leading 0
                 inputField.addEventListener("input", function() {
                     errorMsg.style.display = inputField.value.startsWith("0") ? "inline" : "none";
+
+                    if (inputField.value.length == 9 && use_9_digits == "true") {
+                        errorMsg.innerHTML = "Prüfen Sie bitte selbst die Gültigkeit der 9-stelligen ID.";
+                        errorMsg.style.color = "#e08f1d";
+                        errorMsg.style.display = "inline";
+                    } else {
+                        errorMsg.style.color = "red";
+                    }
                 });
 
                 // activate generation button on valid ID
@@ -1302,7 +1338,7 @@ if ($sMode == 'export' && PseudoService::isAllowed('export')) { ?>
 // ================================================================================================
 // display import form
 // ================================================================================================
-if ($sMode == 'import' && PseudoService::isAllowed('import')) { ?>
+if ($sMode == 'import') { ?>
       <h5>Liste importieren</h5>
       <form style="max-width:700px;" enctype="multipart/form-data" method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">

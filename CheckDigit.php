@@ -4,60 +4,65 @@ namespace meDIC\PseudoService;
 class CheckDigit extends PseudoService {
     
     /**
+     * Validation check digit of Pat ID 
+     * 10 and 9 digits cases are considered 
+     *   10 digits: returns input if calculated check digit match the input check digit
+     *    9 digits: append a calculated check digit after the input Pat-ID
+     * edge cases are avoided through live form validation in the index.php
+     * 
      * @author Egidia Cenko
      * @param string $known_id patient ID
      * @access public
-     * @return boolean valid?
+     * @return string known_id / -1
      */
     public static function validateID($known_id){
-        // no IDs with leading 0 exist 
-        if (strlen($known_id) === 10 && $known_id[0] != "0") {
-            return true;
-        } else {
-            return false;
-        }
-
-        /* initial logic when both 9 digits and 10 digits input is allowed
-        if (strlen($known_id) === 9 && $known_id[0] == "0") {
-            return false;
-        } else {
-            if (strlen($known_id) === 10 && $known_id[0] != "0") {
-                // 10 digits with pat id and check digit -> ideal
-                //TODO compare check digit from input to calculated one
-                return true;
-            } elseif (strlen($known_id) === 9 && $known_id[0] != "0") {
-                //TODO: calculate check digit for the provided ID
-                echo "9 Ziffern ohne Prüfziffer, muss berechnet werden";
+       	// calculate check digit for Pat-ID
+        $calculatedCheckDigit = CheckDigit::calculateCheckDigit($known_id);
+        
+        if (strlen($known_id) === 10) {
+            // compare calculated check digit with check digit from user input
+            $checkDigit = substr($known_id, -1);
+            
+            // check digit correct?
+            if (intval($checkDigit) === $calculatedCheckDigit) {
+                // user input for Pat-ID is returned
                 return $known_id;
-
-            } elseif (strlen($known_id) === 10 && $known_id[0] == "0") {
-                //TODO: calculate check digit for the provided ID by trimming the leading 0
-                echo "10 Ziffern mit 0 am Anfang, muss berechnet werden";
-                return $known_id;
+            } else {
+                return -1;
             }
-        }*/
+        } elseif (strlen($known_id) === 9) {
+            // return input Pat-ID with calculated check sum digit - no further check can be done
+            return $known_id . $calculatedCheckDigit;
+        }
     } 
 
-    //TODO: logic for check digit acc. to DIN ISO 7064
-    public static function calculateCheckDigit($known_id){
-        $digits = str_split($knownID);
 
-        //TODO: add case: if (strlen($known_id) === 10 && $known_id[0] != "0")
-        if (strlen($known_id) === 9 && $known_id[0] != "0") {
-            //TODO: calculate check digit for the provided ID
+    /**
+     * Calculation of the check digit based on DIN ISO 7064
+     * 10 digits: remove the check digit, add a leading 0 for calculation
+     * 9 digits: add a leading 0 for calculation
+     * 
+     * @author Egidia Cenko
+     * @param string $known_id patient ID
+     * @access public
+     * @return integer $checkDigit
+     */
+    public static function calculateCheckDigit($known_id){
+        $digits = str_split($known_id);
+
+        if (strlen($known_id) === 10) {
+            // add leading 0 to digit, remove original input check digit for calculation
+            array_unshift($digits, "0");
+            $digits = array_slice($digits, 0, -1);
+        } elseif (strlen($known_id) === 9) {
             // add leading zero to 9-digits input
             array_unshift($digits, "0");
-        } elseif (strlen($known_id) === 10 && $known_id[0] == "0") {
-            //TODO: calculate check digit for the provided ID by trimming the leading 0
-            echo "10 Ziffern mit 0 am Anfang, muss berechnet werden";
-            // 10 digits, leading 0 -> remains unchanged for calculation
-        }  
-         //TODO: compare logic for existing check digit and calculated one: i.e. for 10 digits without leading zero, split check digit and add leading zero to compare in validate
+        }
         
         if (count($digits) !== 10) {
-            throw new RuntimeException("Length mismatch after processing: " . implode("", $digits));
+            throw new \Exception(strtoupper("Length mismatch after processing: ") . implode($digits));
         }
-
+    
         // logic for check digit acc. to DIN ISO 7064
         $P = 10;
         foreach ($digits as $char) {
