@@ -8,7 +8,8 @@ This modul uses these components:
 
 * SAP search: it uses the SAP BAPI_PATIENT_SEARCH Function Module for IS-H BAPI Patient.Search (see [WSDL](docs/wsdl_sap.xml) of the SOAP API)
 
-* The authorisation of the REDCap user uses OIDC authorization code flow.
+* The authorisation of the REDCap user uses OIDC authorization code flow. Basic Auth can be selected instead of OIDC (Currently, Basic Auth is realized solely for using gPAS, i.e. no use of E-PIX or SAP search is intended).
+
 
 ## Prerequisites
 - REDCap with external modules framework (>= v.8.0.0)
@@ -24,26 +25,43 @@ This modul uses these components:
 
 ## System Configuration
 
-| Parameter             | Description                            |
-|-----------------------|-----------------------------------------|
-| allowed REDCap domain | allowed REDCap hostname              |
-| E-PIX API URL         | API URL for E-PIX                  |
+| Parameter             | Description                            | Example              |
+|-----------------------|-----------------------------------------|----------------------|
+| allowed REDCap domain | allowed REDCap hostname              | localhost (in a test setup)
+| Login Authentication Type | choice between `OAuth2` and `Basic Auth`|
+| use E-PIX             | allow E-PIX use and show E-PIX settings (OIDC) |
+| use SAP               | allow use of SAP search and show SAP settings (OIDC) |
+| E-PIX API URL         | API URL for E-PIX                  | https://epix-example.de/epix/epixService
 | E-PIX Domain          | E-PIX domain                            |
 | E-PIX external source | source for external persons   |
-| E-PIX ID Domain       | ID domain                               |
+| E-PIX ID Domain       | ID domain                               | MPI
 | E-PIX safe source     | safe source for patients from SAP       |
 | E-PIX Scope           | E-PIX Scope (OIDC)               |
 | gPAS API URL          | API URL for gPAS                   |
-| gPAS Domain API URL   | API URL for gPAS Domain Manager    |
-| gPAS Domain Scope     | gPAS Domains Scope (OIDC)       |
-| gPAS Scope            | gPAS Scope (OIDC)                |
+| gPAS Domain API URL   | API URL for gPAS Domain Manager    | https://gpas-example.de/gpas/DomainService
+| gPAS Domain Scope     | gPAS Domains Scope (OIDC/Basic Auth)       | https://gpas-example.de/gpas/gpasService
+| gPAS Scope            | gPAS Scope (OIDC/Basic Auth)                |
+| SAP API URL           | API URL SAP search              |
+| SAP Scope             | SAP search Scope (OIDC)          |
+| SAP Filter: IS-H ID:  | SAP filter term for IS-H ID | `FILTER_PATIENTID`
+| SAP Filter: Last Name:  | SAP filter term for the last name | `FILTER_LAST_NAME_PAT`
+| SAP Filter: First Name:  | SAP filter term for the first name | `FILTER_FRST_NAME_PAT`
+| SAP Filter: Date of Birth FROM:  | SAP filter term for first considerable birthdate  | `FILTER_DOB_FROM`
+| SAP Filter: Date of Birth TO:  | SAP filter term for last considerable birthdate | `FILTER_DOB_TO`
+| use proxy             | use REDCap system proxy for http(s) |
+
+### OIDC specific
+| Parameter             | Description                            |
+|-----------------------|-----------------------------------------|
 | OAuth2 Authorization URL      | Authorization URL for OIDC     |
 | OAuth2 Client ID      | Client ID for OIDC     |
 | OAuth2 Client secret  | Secret for OIDC        |
-| SAP API URL           | API URL SAP search              |
-| SAP Scope             | SAP search Scope (OIDC)          |
-| use proxy             | use REDCap system proxy for http(s) |
 
+### Basic Auth specific
+| Parameter             | Description                            |
+|-----------------------|-----------------------------------------|
+|Basic Auth username | username for the gPAS instance |
+| Basic Auth secret | password for the gPAS instance|
 
 **Note**: For development within Docker (using the [redcap-docker-compose](https://github.com/123andy/redcap-docker-compose/tree/master) repository), the `allowed REDCap domain` should be set to `localhost` (default) so that the `login()` method in the file [`PseudoService.php`](./PseudoService.php) can work properly.
 ## Project Configuration
