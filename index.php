@@ -1022,7 +1022,7 @@ if ($sMode == 'psn_erzeugen' &&
             </label>
                 <div class="col-sm-5">
                     <input type="text" class="form-control" id="known_ID" name="known_ID" value="<?php echo $_POST['known_ID']; ?>">
-                    <span id="error-msg-leading-0" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.</span>
+                    <span id="error-msg-leading-0" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.<br>Geben Sie die ID ab der 2. Stelle an<br>(damit wird die Eingabe insg. 9-stellig)</span>
                 </div>
             </div>
             <div class="form-group row">
