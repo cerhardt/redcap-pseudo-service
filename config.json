@@ -189,7 +189,7 @@
           },
           {
               "key": "sap_id_field",
-              "name": "field to store SAP-ID",
+              "name": "field to store SAP-ID <br><small style='color:#da0000;'>field needs to be marked as identifying</small></b style='color:black'> ",
               "type": "field-list",
               "autocomplete": true,
               "super-users-only": true,
