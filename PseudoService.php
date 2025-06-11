@@ -48,9 +48,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->authorization_url = $this->getSystemSetting("authorization_url");
         $this->client_id = $this->getSystemSetting("client_id");       // The client ID assigned to you by the provider
         $this->client_secret = $this->getSystemSetting("secret");      // The client password assigned to you by the provider
-        $this->basic_id = $this->getSystemSetting("basic_name");
+        $this->basic_name = $this->getSystemSetting("basic_name");
         $this->basic_secret = $this->getSystemSetting("basic_secret");
-        $this->login_option = $this->getSystemSetting('auth_type');    // The client authentication type, either "oauth" (="OAuth2")  or "basic" (="Basic Auth") auth
+        $this->auth_type = $this->getSystemSetting('auth_type');    // The client authentication type, either "oauth" (="OAuth2")  or "basic" (="Basic Auth") auth
         
 
         // namespace for session variables
@@ -98,13 +98,12 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     }
 
     /**
-     * Login Options for API Gateway
-     *
-     * @author  Egidia Cenko
-     * @param string login option: oauth (default) / basic
-     * @access  public
-     * @return void
-     */
+    * Login to API Gateway with OAuth2 (authorization code grant)
+    *
+    * @author  Christian Erhardt
+    * @access  protected
+    * @return void
+    */
     public function login() {
 
         // verify allowed domain
@@ -113,105 +112,94 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
        }
 
         // call default oauth logic
-        if ($this->login_option == 'oauth') {
-           $this->_login_oauth();
-        }
-    }
+        if ($this->auth_type == 'oauth') {
+           if (strlen($this->authorization_url) == 0) {
+                exit('Authorisierungs URL fehlt!');
+            }
+            $host = rtrim($this->authorization_url, '/');
 
-    /**
-    * Login to API Gateway with OAuth2 (authorization code grant)
-    *
-    * @author  Christian Erhardt
-    * @access  protected
-    * @return void
-    */
-    protected function _login_oauth() {
-        if (strlen($this->authorization_url) == 0) {
-            exit('Authorisierungs URL fehlt!');
-        }
-        $host = rtrim($this->authorization_url, '/');
+            $provider = new \League\OAuth2\Client\Provider\GenericProvider([
+                'clientId'                => $this->client_id,    // The client ID assigned to you by the provider
+                'clientSecret'            => $this->client_secret,    // The client password assigned to you by the provider
+                'redirectUri'             => $this->callbackUrl,
+                'urlAuthorize'            => $host.'/authorize',
+                'urlAccessToken'          => $host.'/token',
+                'urlResourceOwnerDetails' => $host,
+                'proxy'                   => $this->proxy,
+                'verify'                  => false,
+                'scopes' => $this->sap_scope.' '.$this->gpas_scope.' '.$this->gpas_domain_scope.' '.$this->epix_scope
+            ]);
 
-        $provider = new \League\OAuth2\Client\Provider\GenericProvider([
-            'clientId'                => $this->client_id,    // The client ID assigned to you by the provider
-            'clientSecret'            => $this->client_secret,    // The client password assigned to you by the provider
-            'redirectUri'             => $this->callbackUrl,
-            'urlAuthorize'            => $host.'/authorize',
-            'urlAccessToken'          => $host.'/token',
-            'urlResourceOwnerDetails' => $host,
-            'proxy'                   => $this->proxy,
-            'verify'                  => false,
-            'scopes' => $this->sap_scope.' '.$this->gpas_scope.' '.$this->gpas_domain_scope.' '.$this->epix_scope
-        ]);
+            // Token expired? -> Refresh Token
+            if (isset($_SESSION[$this->session]['oauth2_expiredin']) && time() >= $_SESSION[$this->session]['oauth2_expiredin']) {
 
-        // Token expired? -> Refresh Token
-        if (isset($_SESSION[$this->session]['oauth2_expiredin']) && time() >= $_SESSION[$this->session]['oauth2_expiredin']) {
+                try {
+                    $accessToken = $provider->getAccessToken('refresh_token', [
+                        'refresh_token' => $_SESSION[$this->session]['oauth2_refreshtoken']
+                    ]);
+                    $_SESSION[$this->session]['oauth2_accesstoken'] = $accessToken->getToken();
+                    $_SESSION[$this->session]['oauth2_expiredin'] = $accessToken->getExpires();
+                    $_SESSION[$this->session]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
 
-            try {
-                $accessToken = $provider->getAccessToken('refresh_token', [
-                    'refresh_token' => $_SESSION[$this->session]['oauth2_refreshtoken']
-                ]);
-                $_SESSION[$this->session]['oauth2_accesstoken'] = $accessToken->getToken();
-                $_SESSION[$this->session]['oauth2_expiredin'] = $accessToken->getExpires();
-                $_SESSION[$this->session]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+                } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+                    // Failed to get the access token or user details.
+                    exit($e->getMessage());
+                }
 
-            } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-                // Failed to get the access token or user details.
-                 exit($e->getMessage());
             }
 
-        }
-
-        // Already logged in: Get Token from session
-        if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
-            $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
-            return (true);
-        }
-
-        // If we don't have an authorization code then get one
-        if (!isset($_GET['code'])) {
-
-            // Fetch the authorization URL from the provider; this returns the
-            // urlAuthorize option and generates and applies any necessary parameters
-            // (e.g. state).
-            $authorizationUrl = $provider->getAuthorizationUrl();
-
-            // Get the state generated for you and store it to the session.
-            $_SESSION[$this->session]['oauth2_state'] = $provider->getState();
-
-            // Redirect the user to the authorization URL.
-            redirect($authorizationUrl);
-
-        // Check given state against previously stored one to mitigate CSRF attack
-        } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session]['oauth2_state'])) {
-
-            if (isset($_SESSION[$this->session]['oauth2_state'])) {
-                unset($_SESSION[$this->session]['oauth2_state']);
+            // Already logged in: Get Token from session
+            if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
+                $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
+                return (true);
             }
-            exit('Invalid state');
 
-        } else {
+            // If we don't have an authorization code then get one
+            if (!isset($_GET['code'])) {
 
-            try {
-                // Try to get an access token using the authorization code grant.
-                $accessToken = $provider->getAccessToken('authorization_code', [
-                    'code' => $_GET['code']
-                ]);
-                $_SESSION[$this->session]['oauth2_accesstoken'] = $accessToken->getToken();
-                $_SESSION[$this->session]['oauth2_expiredin'] = $accessToken->getExpires();
-                $_SESSION[$this->session]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+                // Fetch the authorization URL from the provider; this returns the
+                // urlAuthorize option and generates and applies any necessary parameters
+                // (e.g. state).
+                $authorizationUrl = $provider->getAuthorizationUrl();
 
-            } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-                // Failed to get the access token or user details.
-                exit($e->getMessage());
+                // Get the state generated for you and store it to the session.
+                $_SESSION[$this->session]['oauth2_state'] = $provider->getState();
+
+                // Redirect the user to the authorization URL.
+                redirect($authorizationUrl);
+
+            // Check given state against previously stored one to mitigate CSRF attack
+            } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session]['oauth2_state'])) {
+
+                if (isset($_SESSION[$this->session]['oauth2_state'])) {
+                    unset($_SESSION[$this->session]['oauth2_state']);
+                }
+                exit('Invalid state');
+
+            } else {
+
+                try {
+                    // Try to get an access token using the authorization code grant.
+                    $accessToken = $provider->getAccessToken('authorization_code', [
+                        'code' => $_GET['code']
+                    ]);
+                    $_SESSION[$this->session]['oauth2_accesstoken'] = $accessToken->getToken();
+                    $_SESSION[$this->session]['oauth2_expiredin'] = $accessToken->getExpires();
+                    $_SESSION[$this->session]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+
+                } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+                    // Failed to get the access token or user details.
+                    exit($e->getMessage());
+                }
             }
-        }
 
-        // redirect to data entry page after login
-        // ! moved from index.php because of wrong redirect in basic auth logic
-        if (isset($_SESSION[$oSAPPatientSearch->session]['redirect'])) {
-            $redirect = $_SESSION[$oSAPPatientSearch->session]['redirect'];
-            unset($_SESSION[$oSAPPatientSearch->session]['redirect']);
-            redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
+            // redirect to data entry page after login
+            // ! moved from index.php because of wrong redirect in basic auth logic
+            if (isset($_SESSION[$oSAPPatientSearch->session]['redirect'])) {
+                $redirect = $_SESSION[$oSAPPatientSearch->session]['redirect'];
+                unset($_SESSION[$oSAPPatientSearch->session]['redirect']);
+                redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
+            }
         }
     }
 
@@ -270,7 +258,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
         );
         
-        if ($this->login_option == 'oauth') {
+        if ($this->auth_type == 'oauth') {
             // get access token from session
             if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
                 $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
@@ -280,8 +268,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
             $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken);
 
-        } elseif ($this->login_option == 'basic') {
-            $user_pw = $this->basic_id . ":" . $this->basic_secret;
+        } elseif ($this->auth_type == 'basic') {
+            $user_pw = $this->basic_name . ":" . $this->basic_secret;
             $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw));
         }
         // debug
