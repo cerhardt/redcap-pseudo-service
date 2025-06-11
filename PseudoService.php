@@ -81,17 +81,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $this->maxcnt = intval($this->getProjectSetting("maxcnt"));
             }
             $this->gpas_domain = $this->getProjectSetting("gpas_domain");
-
-            // second gpas domain enabled?
-            if ($this->getProjectSettings("use_2_gpas_domains")) {
-                $this->gpas_domain_2 = $this->getProjectSetting("gpas_domain_2");
-            }
-
-            // create list of gpas domains, only store existing domains (no null)
-            $this->gpas_domain_list = array_filter([$this->gpas_domain, $this->gpas_domain_2], 
-                                                    function($domain) {
-                                                        return !empty($domain);
-                                                    });
         }
 
         $this->error = '';
