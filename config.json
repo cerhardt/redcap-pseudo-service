@@ -17,8 +17,8 @@
 	"permissions": [
         "hook_data_entry_form_top"
 	],
-	
-	"enable-every-page-hooks-on-system-pages":false,	
+
+	"enable-every-page-hooks-on-system-pages":false,
 
 	"links": {
         "project": [
@@ -45,6 +45,12 @@
             "type": "text"
         },
         {
+            "key": "use_9_digits_pat_id",
+            "name": "allow 9 digits input for Pat.-ID (default: 10 digits)",
+            "type": "checkbox",
+            "super-users-only": true
+        },
+        {
             "key": "extern",
             "name": "use external probands",
             "super-users-only": true,
@@ -62,7 +68,7 @@
                       "field": "extern",
                       "value": "true"
                   }
-              ]            
+              ]
            },
            "sub_settings":[
               {
@@ -166,7 +172,7 @@
           },
           {
               "key": "sap_id_field",
-              "name": "field to store SAP-ID",
+              "name": "field to store SAP-ID <br><small style='color:#da0000;'>field needs to be marked as identifying</small></b style='color:black'> ",
               "type": "field-list",
               "autocomplete": true,
               "super-users-only": true,
@@ -202,23 +208,76 @@
             "type": "text"
         },
         {
+            "key": "auth_type",
+            "name": "Login Authentication Type",
+            "required": true,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "oauth",
+                "name": "OAuth2"
+              },
+              {
+                "value": "basic",
+                "name": "Basic Auth"
+              }
+            ]
+        },
+        {
+            "key": "basic_name",
+            "name": "Basic Auth username",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type",
+                "value": "basic"
+            }
+        },
+        {
+            "key": "basic_secret",
+            "name": "Basic Auth secret",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type",
+                "value": "basic"
+            }
+        },
+        {
             "key": "authorization_url",
             "name": "Authorization Server URL",
+            "type": "text",
             "required": true,
-            "type": "text"
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type",
+                "value": "oauth"
+            }
         },
         {
             "key": "client_id",
             "name": "OAuth2 Client ID",
+            "type": "password",
             "required": true,
-            "type": "password"
-        },
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type",
+                "value": "oauth"
+            }
+        },    
         {
             "key": "secret",
-            "name": "OAuth2 Cient secret",
+            "name": "OAuth2 Client secret",
+            "type": "password",
             "required": true,
-            "type": "password"
-        },
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type",
+                "value": "oauth"
+            }
+        },    
         {
             "key": "gpas_url",
             "name": "gPAS API URL",
@@ -228,7 +287,7 @@
         {
             "key": "gpas_scope",
             "name": "gPAS Scope",
-            "required": true,
+            "required": false,
             "type": "text"
         },
         {
@@ -240,72 +299,153 @@
         {
             "key": "gpas_domain_scope",
             "name": "gPAS Domain Scope",
-            "required": true,
+            "required": false,
             "type": "text"
+        },
+        {
+            "key": "epix_integrate",
+            "name": "use E-PIX",
+            "super-users-only": true,
+            "type": "checkbox"
         },
         {
             "key": "epix_url",
             "name": "E-PIX API URL",
+            "type": "text",
             "required": true,
-            "type": "text"
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "epix_integrate",
+                "value": "true"
+            }
         },
         {
             "key": "epix_scope",
             "name": "E-PIX Scope",
-            "required": true,
-            "type": "text"
+            "required": false,
+            "type": "text",
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "epix_integrate",
+                "value": "true"
+            }
         },
         {
             "key": "epix_domain",
             "name": "E-PIX Domain",
             "required": true,
+            "type": "text",
+            "super-users-only": true,
             "branchingLogic": {
-                "field": "epix_url",
-                 "op": "<>",
-                 "value": ""
+                "field": "epix_integrate",
+                "value": "true"
             }
         },
         {
             "key": "epix_safe_source",
             "name": "E-PIX safe source",
             "required": true,
+            "type": "text",
             "branchingLogic": {
-                "field": "epix_url",
-                 "op": "<>",
-                 "value": ""
+                "field": "epix_integrate",
+                "value": "true"
             }
         },
         {
             "key": "epix_external_source",
             "name": "E-PIX external source",
             "required": true,
+            "type": "text",
             "branchingLogic": {
-                "field": "epix_url",
-                 "op": "<>",
-                 "value": ""
+                "field": "epix_integrate",
+                "value": "true"
             }
         },
         {
             "key": "epix_id_domain",
             "name": "E-PIX ID Domain",
             "required": true,
+            "type": "text",
             "branchingLogic": {
-                "field": "epix_url",
-                 "op": "<>",
-                 "value": ""
+                "field": "epix_integrate",
+                "value": "true"
             }
+        },
+        {
+            "key": "sap_integrate",
+            "name": "use SAP",
+            "super-users-only": true,
+            "type": "checkbox"
         },
         {
             "key": "sap_url",
             "name": "SAP API URL",
             "required": true,
-            "type": "text"
+            "type": "text",
+            "branchingLogic": {
+                "field": "sap_integrate",
+                "value": "true"
+            }
         },
         {
             "key": "sap_scope",
             "name": "SAP Scope",
             "required": true,
-            "type": "text"
+            "type": "text",
+            "branchingLogic": {
+                "field": "sap_integrate",
+                "value": "true"
+            }
+        },
+        {
+            "key": "sap_filter_pid",
+            "name": "SAP Filter: IS-H ID",
+            "required": true,
+            "type": "text",
+            "branchingLogic": {
+                "field": "sap_integrate",
+                "value": "true"
+            }
+        },
+        {
+            "key": "sap_filter_lastname",
+            "name": "SAP Filter: Last Name",
+            "required": true,
+            "type": "text",
+            "branchingLogic": {
+                "field": "sap_integrate",
+                "value": "true"
+            }
+        },
+        {
+            "key": "sap_filter_firstname",
+            "name": "SAP Filter: First Name",
+            "required": true,
+            "type": "text",
+            "branchingLogic": {
+                "field": "sap_integrate",
+                "value": "true"
+            }
+        },
+        {
+            "key": "sap_filter_dob_from",
+            "name": "SAP Filter: Date of Birth FROM",
+            "required": true,
+            "type": "text",
+            "branchingLogic": {
+                "field": "sap_integrate",
+                "value": "true"
+            }
+        },
+        {
+            "key": "sap_filter_dob_to",
+            "name": "SAP Filter: Date of Birth TO",
+            "required": true,
+            "type": "text",
+            "branchingLogic": {
+                "field": "sap_integrate",
+                "value": "true"
+            }
         },
         {
             "key": "use_proxy",
