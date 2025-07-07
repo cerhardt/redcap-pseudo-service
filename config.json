@@ -602,12 +602,8 @@
             "super-users-only": true,
             "type": "checkbox",
             "branchingLogic": {
-                "conditions": [
-                    {
-                        "field": "project_custom_settings",
-                        "value": "true"
-                    }
-                ]
+                "field": "project_custom_settings",
+                "value": "true"
             }
             
         },
@@ -639,12 +635,8 @@
               "autocomplete": true,
               "super-users-only": true,
                 "branchingLogic": {
-                    "conditions": [
-                        {
-                            "field": "save_sap_id",
-                            "value": "true"
-                        }
-                    ]
+                    "field": "save_sap_id",
+                    "value": "true"
                 }
           },
           {
@@ -653,12 +645,8 @@
               "type": "event-list",
               "super-users-only": true,
                 "branchingLogic": {
-                    "conditions": [
-                        {
-                            "field": "save_sap_id",
-                            "value": "true"
-                        }
-                    ]
+                    "field": "save_sap_id",
+                    "value": "true"
                 }
           },
 
@@ -764,12 +752,8 @@
              "name": "<p style='font-size:large'>Custom Fields Settings</p>",
              "type": "descriptive",
              "branchingLogic": {
-                "conditions": [
-                    {
-                        "field": "extern",
-                        "value": "true"
-                    }
-                ]
+                "field": "extern",
+                "value": "true"
              }
         },
         {
@@ -779,12 +763,8 @@
            "type": "sub_settings",
            "repeatable":true,
            "branchingLogic": {
-                "conditions": [
-                    {
-                        "field": "extern",
-                        "value": "true"
-                    }
-                ]
+                "field": "extern",
+                "value": "true"
            },
            "sub_settings":[
               {
