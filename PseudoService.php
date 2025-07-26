@@ -13,6 +13,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     public function __construct() {
         parent::__construct();
         
+        $this->AccessToken = array();
+
         // System settings
         // Authentication Types
         $this->aAuthTypes = array();
@@ -113,7 +115,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             exit('Zugriff verweigert!');
        }
 
-        for($i=1;$i<=3;$i++) {
+       for($i=1;$i<=3;$i++) {
             if (!isset($this->aAuthTypes[$i])) continue;
 
             $aAuth = $this->aAuthTypes[$i];
@@ -303,7 +305,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }
         // debug
         //print('<pre>'.htmlspecialchars($sXML).'</pre>');
-
 
         // curl call
         $curl = curl_init();
