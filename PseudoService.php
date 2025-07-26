@@ -57,6 +57,42 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->sap_filter_dob_from = $this->getSystemSetting("sap_filter_dob_from");
         $this->sap_filter_dob_to = $this->getSystemSetting("sap_filter_dob_to");
         
+        // Overwrite system settings
+        if ($this->getProjectId() && $this->getProjectSetting("project_custom_settings") === true) {
+            // Authentication Types
+            $this->aAuthTypes = array();
+            for($i=1;$i<=3;$i++) {
+                if (strlen($this->getProjectSetting("project_auth_type".$i)) > 0) {
+                    $this->aAuthTypes[$i]['auth_type'] = $this->getProjectSetting("project_auth_type".$i);
+                    $this->aAuthTypes[$i]['basic_name'] = $this->getProjectSetting("project_basic_name".$i);
+                    $this->aAuthTypes[$i]['basic_secret'] = $this->getProjectSetting("project_basic_secret".$i);
+                    $this->aAuthTypes[$i]['authorization_url'] = $this->getProjectSetting("project_authorization_url".$i);
+                    $this->aAuthTypes[$i]['client_id'] = $this->getProjectSetting("project_client_id".$i);
+                    $this->aAuthTypes[$i]['secret'] = $this->getProjectSetting("project_secret".$i);
+                }
+            }
+        
+            // gPAS
+            $this->gpas_auth_type = $this->getProjectSetting("project_gpas_auth_type");
+            $this->gpas_url = $this->getProjectSetting("project_gpas_url");
+            $this->gpas_scope = $this->getProjectSetting("project_gpas_scope");
+            $this->gpas_domain_url = $this->getProjectSetting("project_gpas_domain_url");
+            $this->gpas_domain_scope = $this->getProjectSetting("project_gpas_domain_scope");
+            
+            // E-PIX
+            $this->use_epix = $this->getProjectSetting("project_use_epix");
+            $this->epix_auth_type = $this->getProjectSetting("project_epix_auth_type");
+            $this->epix_url = $this->getProjectSetting("project_epix_url");
+            $this->epix_scope = $this->getProjectSetting("project_epix_scope");
+            $this->epix_domain = $this->getProjectSetting("project_epix_domain");
+            $this->epix_safe_source = $this->getProjectSetting("project_epix_safe_source");
+            $this->epix_external_source = $this->getProjectSetting("project_epix_external_source");
+            $this->epix_id_domain = $this->getProjectSetting("project_epix_id_domain");
+
+            // SAP
+            $this->use_sap = $this->getProjectSetting("project_use_sap");
+        }
+        
         // module index URL
         $this->moduleIndex = $this->replaceHost($this->getUrl('index.php'));        
 
