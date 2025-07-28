@@ -50,15 +50,6 @@ class EPIX_gPAS extends PseudoService {
         if (!PseudoService::isAllowed('search')) {
             return;
         }
-
-        // not logged in? => return
-        /*
-        if (!$this->getlogin()) {
-            $_SESSION[$this->session]['redirect'] = $_SERVER['QUERY_STRING'];        
-            printf ($this->idatwrap, 'Bitte in TEIS <a href="'.$this->moduleIndex.'">anmelden</a> zur Anzeige der IDAT');
-            return;
-        }
-        */
         
         // get REDCap ID
         $sID = $_GET['id'];
@@ -78,46 +69,50 @@ class EPIX_gPAS extends PseudoService {
             if (str_starts_with($mpiID,$this->getProjectSetting("extpsn_prefix"))) {
                 $mpiID = substr($mpiID, strlen($this->getProjectSetting("extpsn_prefix")));
                 $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID] = $mpiID;
-                printf ($this->idatwrap, $mpiID);
+                printf ($this->idatwrap, $this->getProjectSetting("extpsn_label").' '.$mpiID);
                 return;
             }
         }
 
         // get SAP-ID (ID_DOMAIN) from E-PIX
         $aISH_IDs = array();
-        $aIdentifier = $this->getAllIdentifierForAcivePersonWithMPI($mpiID);
-        foreach($aIdentifier as $aId) {
-            if ($aId['identifierDomain']['name'] == $this->epix_id_domain) {
-                $aISH_IDs[] = $aId['value'];
+        if ($this->use_sap === true) {
+            $aIdentifier = $this->getAllIdentifierForAcivePersonWithMPI($mpiID);
+            foreach($aIdentifier as $aId) {
+                if ($aId['identifierDomain']['name'] == $this->epix_id_domain) {
+                    $aISH_IDs[] = $aId['value'];
+                }
             }
         }
-
-        // get personal data from E-PIX
-        $aIdentifier = $this->getActivePersonByMPI($mpiID);
-        $aRefIdentity = $aIdentifier['referenceIdentity'];
-        $sIdat = '';
-        if (!is_array($aRefIdentity['firstName'])) {
-            $sIdat =  $aRefIdentity['firstName'];     
-        }
-        if (!is_array($aRefIdentity['lastName'])) {
-            $sIdat .=  ' '.$aRefIdentity['lastName'];     
-        }
-        if (!is_array($aRefIdentity['mothersMaidenName'])) {
-            if (strlen($aRefIdentity['mothersMaidenName']) > 0 && $aRefIdentity['mothersMaidenName'] != $aRefIdentity['lastName']) {
-                $sIdat .= ' (geb. '.$aRefIdentity['mothersMaidenName'].')';
+        
+        if ($this->use_epix === true) {
+            // get personal data from E-PIX
+            $aIdentifier = $this->getActivePersonByMPI($mpiID);
+            $aRefIdentity = $aIdentifier['referenceIdentity'];
+            $sIdat = '';
+            if (!is_array($aRefIdentity['firstName'])) {
+                $sIdat =  $aRefIdentity['firstName'];     
             }
-        }
-        if (!is_array($aRefIdentity['birthDate'])) {
-            if (strlen($aRefIdentity['birthDate']) > 0) {
-                $aTmp = explode("T",$aRefIdentity['birthDate']);
-                $sIdat .=  ' ('.\DateTimeRC::format_user_datetime($aTmp[0], 'Y-M-D_24', 'D.M.Y_24').')';     
+            if (!is_array($aRefIdentity['lastName'])) {
+                $sIdat .=  ' '.$aRefIdentity['lastName'];     
             }
+            if (!is_array($aRefIdentity['mothersMaidenName'])) {
+                if (strlen($aRefIdentity['mothersMaidenName']) > 0 && $aRefIdentity['mothersMaidenName'] != $aRefIdentity['lastName']) {
+                    $sIdat .= ' (geb. '.$aRefIdentity['mothersMaidenName'].')';
+                }
+            }
+            if (!is_array($aRefIdentity['birthDate'])) {
+                if (strlen($aRefIdentity['birthDate']) > 0) {
+                    $aTmp = explode("T",$aRefIdentity['birthDate']);
+                    $sIdat .=  ' ('.\DateTimeRC::format_user_datetime($aTmp[0], 'Y-M-D_24', 'D.M.Y_24').')';     
+                }
+            }
+            if (count($aISH_IDs) > 0) {
+                $sIdat .= ', SAP-ID '.implode(", ",$aISH_IDs);
+            }
+            $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID] = $sIdat;
+            printf ($this->idatwrap, $sIdat);
         }
-        if (count($aISH_IDs) > 0) {
-            $sIdat .= ', SAP-ID '.implode(", ",$aISH_IDs);
-        }
-        $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID] = $sIdat;
-        printf ($this->idatwrap, $sIdat);
     }
 
 
@@ -841,7 +836,7 @@ class EPIX_gPAS extends PseudoService {
             $aData[$this->getProjectSetting("extpsn_field")] = $psextPSN;
             // save data
             $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
-            if (count($result['errors']) > 0) {
+            if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);
             }
@@ -857,7 +852,7 @@ class EPIX_gPAS extends PseudoService {
             $aData[$this->getProjectSetting("sap_id_field")] = $pishId;
             // save data
             $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
-            if (count($result['errors']) > 0) {
+            if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);
             }

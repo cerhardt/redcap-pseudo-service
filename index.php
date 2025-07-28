@@ -95,13 +95,13 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 
         // external pseudonym
         if ($module->getProjectSetting("extpsn") === true) {
-            if (strlen($_POST['extPS']) > 0 ) {
+            if (strlen($_POST['extID']) > 0 ) {
                 $bPatientSearch = false;
-                $aResult = $oPseudoService->getPseudonymForValuePrefix($module->getProjectSetting("extpsn_prefix").$_POST['extPS']);
-                Logging::logEvent('', $module->getModuleName(), "OTHER", '', print_r($_POST,true), "extPSN search");
+                $aResult = $oPseudoService->getPseudonymForValuePrefix($module->getProjectSetting("extpsn_prefix").$_POST['extID']);
+                Logging::logEvent('', $module->getModuleName(), "OTHER", '', print_r($_POST,true), "extID search");
                 
                 foreach($aResult as $key => $aPat) {
-                    $aEpixResult[$i]['extpsn'] = substr($aPat['key'], strlen($module->getProjectSetting("extpsn_prefix")));
+                    $aEpixResult[$i]['extid'] = substr($aPat['key'], strlen($module->getProjectSetting("extpsn_prefix")));
                     $aEpixResult[$i]['psn'] = $aPat['value'];
                     
                     $i++;
@@ -236,9 +236,9 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
   // ================================================================================================
   if ($sMode == 'create' && PseudoService::isAllowed('create')) {
       // external pseudonyms: create PSN
-      if ($module->getProjectSetting("extpsn") === true && strlen($_POST['extPS']) > 0) {
+      if ($module->getProjectSetting("extpsn") === true && strlen($_POST['extID']) > 0) {
 
-            $sExtPS = $_POST['extPS'];
+            $sExtPS = $_POST['extID'];
             if ($module->getProjectSetting("validate_pat_id") === true) {
                 $validatedID = CheckDigit::validateID($sExtPS);
 
@@ -255,7 +255,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
               $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
 
               // redcap log
-              Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sExtPS.": ".$sPSN, "extPSN: psn created");
+              Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sExtPS.": ".$sPSN, "extID: psn created");
               // save pseudonym in REDCap study
               $oPseudoService->createREDCap($sPSN, $sExtPS);
           } else {
@@ -269,7 +269,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             strlen($_POST['lastName']) > 0 && 
             strlen($_POST['gender']) > 0 &&
             strlen($_POST['birthDate']) > 0 &&
-            strlen($_POST['extPS']) == 0 && 
+            strlen($_POST['extID']) == 0 && 
             strlen($iISH_ID_ENC) == 0) {
 
             $aResult = $oPseudoService->requestMPI($_POST);
@@ -351,7 +351,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
         $aHeader = array();
         $aHeader['psn'] = true;
         
-        // build filter for E-PIX and get extPSNs for csv array
+        // build filter for E-PIX and get extIDs for csv array
         $i = 0;
         foreach($agPASMap as $original => $psn) {
             $aCSV[$i]['psn'] = $psn;
@@ -359,8 +359,8 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             if ($module->getProjectSetting("extpsn") === true) {
                 if (str_starts_with($original,$module->getProjectSetting("extpsn_prefix"))) {
                     $original = substr($original, strlen($module->getProjectSetting("extpsn_prefix")));
-                    $aCSV[$i]['extPSN'] = $original;
-                    $aHeader['extPSN'] = true;
+                    $aCSV[$i]['extID'] = $original;
+                    $aHeader['extID'] = true;
                     $i++;
                     continue;
                 }
@@ -550,22 +550,22 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       continue;
                   }
                   
-                  // extPSN
-                  if ($module->getProjectSetting("extpsn") === true && strlen($aRow['extPSN']) > 0) {
+                  // extID
+                  if ($module->getProjectSetting("extpsn") === true && strlen($aRow['extID']) > 0) {
                       // does psn already exist?
-                      $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$aRow['extPSN']);
+                      $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$aRow['extID']);
                       if (!$mEpixResult) {
                           // create new value -> psn pair
                           if ($sPSN_mode == 'import') {
                               $sPSN = $aRow['psn'];
-                              if (!$oPseudoService->insertValuePseudonymPair($module->getProjectSetting("extpsn_prefix").$aRow['extPSN'], $sPSN)) {
+                              if (!$oPseudoService->insertValuePseudonymPair($module->getProjectSetting("extpsn_prefix").$aRow['extID'], $sPSN)) {
                                   $aCSV[$i]['error'] = $oPseudoService->getError();
                                   continue;
                               }
                           }
                           // create new psn
                           if ($sPSN_mode == 'create') {
-                              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$_POST['extPSN']);
+                              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$_POST['extID']);
                               if (!$sPSN) {
                                   $aCSV[$i]['error'] = $oPseudoService->getError();
                                   continue;
@@ -574,10 +574,10 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                           }
 
                           $aCSV[$i]['imported'] = $sPSN_mode;
-                          Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extPSN'].": ".$oPseudoService->trimZero($sPSN), "extPSN: psn created");
+                          Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extID'].": ".$oPseudoService->trimZero($sPSN), "extID: psn created");
 
                           // create REDCap entry
-                          if (!$oPseudoService->createREDCap($sPSN, $aRow['extPSN'])) {
+                          if (!$oPseudoService->createREDCap($sPSN, $aRow['extID'])) {
                               $aCSV[$i]['error'] = $oPseudoService->getError();
                           }
                       } else {
@@ -617,7 +617,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                         strlen($aRow['lastName']) > 0 && 
                         strlen($aRow['gender']) > 0 &&
                         strlen($aRow['birthDate']) > 0 &&
-                        strlen($aRow['extPS']) == 0 &&
+                        strlen($aRow['extID']) == 0 &&
                         strlen($aRow['SAP-ID']) == 0) {
                       
                         $aResult = $oPseudoService->requestMPI($aRow);
@@ -838,7 +838,7 @@ if ($sMode == 'delete' && isset($_GET['del_mpiid_enc']) && PseudoService::isAllo
                     // redcap log
                     Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSNTmp, "PSN deleted");
         
-                    // extPSN? skip E-PIX
+                    // extID? skip E-PIX
                     if ($module->getProjectSetting("extpsn") === true && str_starts_with($mpiID,$module->getProjectSetting("extpsn_prefix"))) {
                         $oPseudoService->setError("Pseudonym / REDCap Datensatz wurde gelöscht!");
                     } elseif ($oPseudoService->use_epix === true) {
@@ -975,9 +975,9 @@ if (PseudoService::isAllowed('search')) {
            <!-- externes Pseudonym -->
           <h5><?php print ($module->getProjectSetting("extpsn_label")); ?> suchen</h5>
           <div class="form-group row">
-            <label for="extPS" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?></label>
+            <label for="extID" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?></label>
             <div class="col-sm-5">
-              <input type="text" class="form-control" id="extPS" name="extPS" value="<?php echo $_POST['extPS']; ?>">
+              <input type="text" class="form-control" id="extID" name="extID" value="<?php echo $_POST['extID']; ?>">
             </div>
           </div>
     <?php } ?>      
@@ -1220,12 +1220,12 @@ if ($sMode == 'create'
       <h5><?php print ($module->getProjectSetting("extpsn_label")); ?> anlegen</h5>
       <form method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
-        <label for="extPS" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?>
+        <label for="extID" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?>
         <?php if ($module->getProjectSetting("validate_pat_id") === true) { 
             echo ("<br>".$module->getProjectSetting("use_9_digits_pat_id") ? '(9-/10-stellig erlaubt)' : '(10-stellig)'); 
         } ?></label>
         <div class="col-sm-5">
-          <input type="text" class="form-control" id="extPS" name="extPS" value="<?php echo $aPost['extPS']; ?>">
+          <input type="text" class="form-control" id="extID" name="extID" value="<?php echo $aPost['extID']; ?>">
         <?php if ($module->getProjectSetting("validate_pat_id") === true) { ?> 
             <span id="error-msg-leading-0" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.<br>Geben Sie die ID ab der 2. Stelle an<br>(damit wird die Eingabe insg. 9-stellig)</span>
         <?php } ?>
@@ -1242,7 +1242,7 @@ if ($sMode == 'create'
         <script type="text/javascript">
             // javascript to enable generation button only if regex matches 
             document.addEventListener("DOMContentLoaded", function () {
-                let inputField = document.getElementById("extPS");
+                let inputField = document.getElementById("extID");
                 let submitButton = document.getElementById("submitGen");
                 let errorMsg = document.getElementById("error-msg-leading-0");
                 
@@ -1457,7 +1457,7 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
             
             print ('
                   <tr>
-                    <td>'.$aData['extpsn'].'</td>
+                    <td>'.$aData['extid'].'</td>
                     <td>'.$aData['psn'].'</td>
                     <td><a href="'.$homeURL.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>                    
                     '.$sDelTD.'

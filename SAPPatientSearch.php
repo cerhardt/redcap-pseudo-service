@@ -46,23 +46,23 @@ class SAPPatientSearch extends PseudoService {
 
         $requestArray = Array();
         if (strlen($paPerson['ish_id']) > 0) {
-            $requestArray['FILTER_PATIENTID'] = $paPerson['ish_id'];
+            $requestArray[$this->sap_filter_pid] = $paPerson['ish_id'];
         }
         if (strlen($paPerson['lastName']) > 0) {
-            $requestArray['FILTER_LAST_NAME_PAT'] = $paPerson['lastName'];
-            if (substr($requestArray['FILTER_LAST_NAME_PAT'],-1) != '*') {
-                $requestArray['FILTER_LAST_NAME_PAT'] .= '*';
+            $requestArray[$this->sap_filter_lastname] = $paPerson['lastName'];
+            if (substr($requestArray[$this->sap_filter_lastname],-1) != '*') {
+                $requestArray[$this->sap_filter_lastname] .= '*';
             }
         }
         if (strlen($paPerson['firstName']) > 0) {
-            $requestArray['FILTER_FRST_NAME_PAT'] = $paPerson['firstName'];
-            if (substr($requestArray['FILTER_FRST_NAME_PAT'],-1) != '*') {
-                $requestArray['FILTER_FRST_NAME_PAT'] .= '*';
+            $requestArray[$this->sap_filter_firstname] = $paPerson['firstName'];
+            if (substr($requestArray[$this->sap_filter_firstname],-1) != '*') {
+                $requestArray[$this->sap_filter_firstname] .= '*';
             }
         }
         if (strlen($paPerson['birthDate']) > 0) {
-            $requestArray['FILTER_DOB_FROM'] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
-            $requestArray['FILTER_DOB_TO'] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
+            $requestArray[$this->sap_filter_dob_from] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
+            $requestArray[$this->sap_filter_dob_to] = \DateTimeRC::format_user_datetime($paPerson['birthDate'], 'D.M.Y_24', 'Y-M-D_24');
         }
 
         try {

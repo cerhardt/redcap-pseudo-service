@@ -62,30 +62,26 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             // Overwrite Auth Types
             if ($this->getProjectSetting("project_auth_overwrite") === true) {
                 $this->aAuthTypes = array();
-            }
-            // Authentication Types
-            for($i=1;$i<=3;$i++) {
-                if (strlen($this->getProjectSetting("project_auth_type".$i)) > 0) {
-                    $this->aAuthTypes[$i]['auth_type'] = $this->getProjectSetting("project_auth_type".$i);
-                    $this->aAuthTypes[$i]['basic_name'] = $this->getProjectSetting("project_basic_name".$i);
-                    $this->aAuthTypes[$i]['basic_secret'] = $this->getProjectSetting("project_basic_secret".$i);
-                    $this->aAuthTypes[$i]['authorization_url'] = $this->getProjectSetting("project_authorization_url".$i);
-                    $this->aAuthTypes[$i]['client_id'] = $this->getProjectSetting("project_client_id".$i);
-                    $this->aAuthTypes[$i]['secret'] = $this->getProjectSetting("project_secret".$i);
+                // Authentication Types
+                for($i=1;$i<=3;$i++) {
+                    if (strlen($this->getProjectSetting("project_auth_type".$i)) > 0) {
+                        $this->aAuthTypes[$i]['auth_type'] = $this->getProjectSetting("project_auth_type".$i);
+                        $this->aAuthTypes[$i]['basic_name'] = $this->getProjectSetting("project_basic_name".$i);
+                        $this->aAuthTypes[$i]['basic_secret'] = $this->getProjectSetting("project_basic_secret".$i);
+                        $this->aAuthTypes[$i]['authorization_url'] = $this->getProjectSetting("project_authorization_url".$i);
+                        $this->aAuthTypes[$i]['client_id'] = $this->getProjectSetting("project_client_id".$i);
+                        $this->aAuthTypes[$i]['secret'] = $this->getProjectSetting("project_secret".$i);
+                    }
                 }
-            }
-        
-            // gPAS
-            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+
+                // gPAS Auth
                 $this->gpas_auth_type = $this->getProjectSetting("project_gpas_auth_type");
                 $this->gpas_url = $this->getProjectSetting("project_gpas_url");
                 $this->gpas_scope = $this->getProjectSetting("project_gpas_scope");
                 $this->gpas_domain_url = $this->getProjectSetting("project_gpas_domain_url");
                 $this->gpas_domain_scope = $this->getProjectSetting("project_gpas_domain_scope");
-            }            
-            // E-PIX
-            $this->use_epix = $this->getProjectSetting("project_use_epix");
-            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+
+                // E-PIX Auth
                 $this->epix_auth_type = $this->getProjectSetting("project_epix_auth_type");
                 $this->epix_url = $this->getProjectSetting("project_epix_url");
                 $this->epix_scope = $this->getProjectSetting("project_epix_scope");
@@ -94,22 +90,23 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $this->epix_external_source = $this->getProjectSetting("project_epix_external_source");
                 $this->epix_id_domain = $this->getProjectSetting("project_epix_id_domain");
             }
-            // SAP
+            // Use E-PIX
+            $this->use_epix = $this->getProjectSetting("project_use_epix");
+            // Use SAP
             $this->use_sap = $this->getProjectSetting("project_use_sap");
         }
         
         // manual edit allowed?        
         $this->manual_edit = false;
 
-        // SAP needs E-PIX
         if ($this->use_sap === true) {
+            // SAP needs E-PIX
             $this->use_epix = true;
-            
+                            
             if ($this->getProjectId() && $this->getProjectSetting("extern") === true) {
                 $this->manual_edit = true;
             }
-        }
-        if ($this->use_epix === true) {
+        } elseif ($this->use_epix === true) {
             $this->manual_edit = true;
         }        
         
@@ -118,11 +115,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // callback URL
         $this->callbackUrl = $this->moduleIndex;
-
-        // API Authentication
-        $this->authorization_url = $this->getSystemSetting("authorization_url");
-        $this->client_id = $this->getSystemSetting("client_id");    // The client ID assigned to you by the provider
-        $this->client_secret = $this->getSystemSetting("secret");    // The client password assigned to you by the provider
         
         // namespace for session variables
         $this->session = strtolower($this->getModuleName());

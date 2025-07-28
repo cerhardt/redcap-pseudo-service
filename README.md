@@ -42,6 +42,11 @@ This modul uses these components:
 | OAuth2 Client secret  | Secret for OIDC        |
 | SAP API URL           | API URL SAP search              |
 | SAP Scope             | SAP search Scope (OIDC)          |
+| SAP Filter: IS-H ID:  | SAP filter term for IS-H ID | `FILTER_PATIENTID`
+| SAP Filter: Last Name:  | SAP filter term for the last name | `FILTER_LAST_NAME_PAT`
+| SAP Filter: First Name:  | SAP filter term for the first name | `FILTER_FRST_NAME_PAT`
+| SAP Filter: Date of Birth FROM:  | SAP filter term for first considerable birthdate  | `FILTER_DOB_FROM`
+| SAP Filter: Date of Birth TO:  | SAP filter term for last considerable birthdate | `FILTER_DOB_TO`
 | use proxy             | use REDCap system proxy for http(s) |
 
 ## Project Configuration
@@ -49,3 +54,4 @@ This modul uses these components:
 - gPAS domain: specifiy gPAS domain for creating studyIDs
 - additional fields for setting the user rights for specific roles:
   ![](docs/project_config1.png)
+  **Note:** In your project, select `Designer` and `+ Create` the instruments `tc_access` and `tc_impexp` in order to make the external module accessible.
