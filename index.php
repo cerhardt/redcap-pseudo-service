@@ -997,6 +997,9 @@ if (PseudoService::isAllowed('search')) {
 // display create form
 // ================================================================================================
 $aPost = $_POST;
+if (isset($_GET['extID'])) {
+    $aPost['extID'] = $_GET['extID'];
+} 
 // load data for edit form
 if ($sMode == 'create' && $_GET['edit'] == '1' && PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) {
     if (strlen($iMPI_ID_ENC) > 0 && count($aPost) == 0) {
@@ -1671,7 +1674,11 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
       && PseudoService::isAllowed('create')) {
 
       echo ('<br />&nbsp;<br />');
-      print('<a href="'.$module->moduleIndex.'&mode=create">Neue Person anlegen</a>');
+      if ($module->getProjectSetting("extpsn") === true && strlen($_POST['extID']) > 0) {
+          print('<a href="'.$module->moduleIndex.'&mode=create&extID='.$_POST['extID'].'">Neue Person mit '.$module->getProjectSetting("extpsn_label").' '.$_POST['extID'].' anlegen</a>');
+      } elseif ($oPseudoService->manual_edit === true) {
+          print('<a href="'.$module->moduleIndex.'&mode=create">Neue Person anlegen</a>');
+      }
 
   }
 }
