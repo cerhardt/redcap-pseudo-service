@@ -1667,7 +1667,7 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
 // ================================================================================================
 if (count($_POST) > 0 && isset($_POST['submit'])) {
   if ($sMode == 'search'
-      && ($module->getProjectSetting("extpsn") === true || $oPseudoService->use_epix === true)
+      && ($module->getProjectSetting("extpsn") === true || $oPseudoService->manual_edit === true)
       && PseudoService::isAllowed('create')) {
 
       echo ('<br />&nbsp;<br />');
