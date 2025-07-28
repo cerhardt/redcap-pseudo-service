@@ -52,11 +52,13 @@ class EPIX_gPAS extends PseudoService {
         }
 
         // not logged in? => return
+        /*
         if (!$this->getlogin()) {
             $_SESSION[$this->session]['redirect'] = $_SERVER['QUERY_STRING'];        
             printf ($this->idatwrap, 'Bitte in TEIS <a href="'.$this->moduleIndex.'">anmelden</a> zur Anzeige der IDAT');
             return;
         }
+        */
         
         // get REDCap ID
         $sID = $_GET['id'];
@@ -824,7 +826,7 @@ class EPIX_gPAS extends PseudoService {
         }
         // save data
         $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
-        if (count($result['errors']) > 0) {
+        if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
             $this->setError("Der REDCap-Datensatz konnte nicht angelegt werden!");
             return (false);
         }

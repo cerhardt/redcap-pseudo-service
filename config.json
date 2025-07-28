@@ -43,14 +43,32 @@
             "super-users-only": true,
             "type": "checkbox"
         },
-    
+        {
+            "key": "project_auth_overwrite",
+            "name": "overwrite system auth settings",
+            "super-users-only": true,
+            "type": "checkbox",
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
         {
              "key": "project_auth_title",
              "name": "<p style='font-size:large'>Authentication Settings</p>",
              "type": "descriptive",
             "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -74,8 +92,17 @@
               }
             ],
             "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -414,20 +441,110 @@
         {
              "key": "project_gpas_title",
              "name": "<p style='font-size:large'>gPAS Settings</p>",
-             "type": "descriptive",
-            "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
-            }
+             "type": "descriptive"
         },
+        {
+            "key": "gpas_domain",
+            "name": "gPAS domain",
+            "required": true,
+            "super-users-only": true,
+            "type": "text"
+        },
+
+          {
+            "key": "extpsn",
+            "name": "store pseudonyms in gPAS",
+            "super-users-only": true,
+            "type": "checkbox"
+          },
+          {
+              "key": "extpsn_label",
+              "name": "Custom label for pseudonym field",
+              "type": "text",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "extpsn_prefix",
+              "name": "prefix",
+              "type": "text",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "validate_pat_id",
+              "name": "validate Pat-ID",
+              "type": "checkbox",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "use_9_digits_pat_id",
+              "name": "allow 9 digits input for Pat.-ID (default: 10 digits)",
+              "type": "checkbox",
+              "super-users-only": true,
+                "branchingLogic": {
+                    "type": "and",
+                    "conditions": [
+                        {
+                            "field": "extpsn",
+                            "value": "true"
+                        },
+                        {
+                            "field": "validate_pat_id",
+                            "value": "true"
+                        }
+                    ]
+                }
+          },
+          {
+              "key": "extpsn_field",
+              "name": "Field to store pseudonym",
+              "type": "field-list",
+              "autocomplete": true,
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "extpsn_event",
+              "name": "Event to store pseudonym",
+              "type": "event-list",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+
         {
             "key": "project_gpas_url",
             "name": "gPAS API URL",
             "required": true,
             "type": "text",
             "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -450,8 +567,17 @@
               }
             ],
             "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         
@@ -461,8 +587,17 @@
             "required": false,
             "type": "text",
             "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -471,8 +606,17 @@
             "required": true,
             "type": "text",
             "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -481,8 +625,17 @@
             "required": false,
             "type": "text",
             "branchingLogic": {
-                "field": "project_custom_settings",
-                "value": "true"
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
 
@@ -525,8 +678,17 @@
               }
             ],
             "branchingLogic": {
-                "field": "project_use_epix",
-                "value": true
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -536,8 +698,17 @@
             "type": "text",
             "super-users-only": true,
             "branchingLogic": {
-                "field": "project_use_epix",
-                "value": true
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -547,8 +718,17 @@
             "type": "text",
             "super-users-only": true,
             "branchingLogic": {
-                "field": "project_use_epix",
-                "value": true
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -557,8 +737,17 @@
             "required": true,
             "super-users-only": true,
             "branchingLogic": {
-                "field": "project_use_epix",
-                "value": true
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -567,8 +756,17 @@
             "required": true,
             "super-users-only": true,
             "branchingLogic": {
-                "field": "project_use_epix",
-                "value": true
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -577,8 +775,17 @@
             "required": true,
             "super-users-only": true,
             "branchingLogic": {
-                "field": "project_use_epix",
-                "value": true
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
@@ -587,14 +794,27 @@
             "required": true,
             "super-users-only": true,
             "branchingLogic": {
-                "field": "project_use_epix",
-                "value": true
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
             }
         },
         {
              "key": "project_sap_title",
              "name": "<p style='font-size:large'>SAP Settings</p>",
-             "type": "descriptive"
+             "type": "descriptive",
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
         },
         {
             "key": "project_use_sap",
@@ -605,7 +825,6 @@
                 "field": "project_custom_settings",
                 "value": "true"
             }
-            
         },
 
 
@@ -614,19 +833,10 @@
               "name": "save SAP-ID in REDCap",
               "super-users-only": true,
               "type": "checkbox",
-              "branchingLogic": {
-                "type": "or",
-                "conditions": [
-                    {
-                        "field": "project_use_sap",
-                        "value": "true"
-                    },
-                    {
-                        "field": "use_sap",
-                        "value": "true"
-                    }
-                ]
-              }
+                "branchingLogic": {
+                    "field": "project_custom_settings",
+                    "value": "true"
+                }
           },
           {
               "key": "sap_id_field",
@@ -635,7 +845,7 @@
               "autocomplete": true,
               "super-users-only": true,
                 "branchingLogic": {
-                    "field": "save_sap_id",
+                    "field": "project_custom_settings",
                     "value": "true"
                 }
           },
@@ -645,116 +855,40 @@
               "type": "event-list",
               "super-users-only": true,
                 "branchingLogic": {
-                    "field": "save_sap_id",
+                    "field": "project_custom_settings",
                     "value": "true"
                 }
           },
 
-
-        {
-            "key": "gpas_domain",
-            "name": "gPAS domain",
-            "required": true,
-            "super-users-only": true,
-            "type": "text"
-        },
-        
         
         {
             "key": "extern",
-            "name": "use external probands",
+            "name": "use additional external probands",
             "super-users-only": true,
             "type": "checkbox",
-            "branchingLogic": {
-                "type": "or",
-                "conditions": [
-                    {
-                        "field": "use_epix",
-                        "value": "true"
-                    },
-                    {
-                        "field": "project_use_epix",
-                        "value": "true"
-                    }
-                ]
-            }
+                "branchingLogic": {
+                    "field": "project_custom_settings",
+                    "value": "true"
+                }
         },
-
-
-
-        {
-             "key": "extpsn_title",
-             "name": "<p style='font-size:large'>External IDs Settings</p>",
-             "type": "descriptive"
-        },
-          {
-            "key": "extpsn",
-            "name": "use external IDs",
-            "super-users-only": true,
-            "type": "checkbox"
-          },
-          {
-              "key": "extpsn_label",
-              "name": "Custom label for ID field",
-              "type": "text",
-              "super-users-only": true,
-              "branchingLogic": {
-                  "field": "extpsn",
-                  "value": "true"
-              }
-          },
-          {
-              "key": "extpsn_prefix",
-              "name": "extPSN: prefix",
-              "type": "text",
-              "super-users-only": true,
-              "branchingLogic": {
-                  "field": "extpsn",
-                  "value": "true"
-              }
-          },
-          {
-              "key": "use_9_digits_pat_id",
-              "name": "allow 9 digits input for Pat.-ID (default: 10 digits)",
-              "type": "checkbox",
-              "super-users-only": true,
-              "branchingLogic": {
-                  "field": "extpsn",
-                  "value": "true"
-              }
-          },
-          {
-              "key": "extpsn_field",
-              "name": "Field to store pseudonym",
-              "type": "field-list",
-              "autocomplete": true,
-              "super-users-only": true,
-              "branchingLogic": {
-                  "field": "extpsn",
-                  "value": "true"
-              }
-          },
-          {
-              "key": "extpsn_event",
-              "name": "Event to store pseudonym",
-              "type": "event-list",
-              "super-users-only": true,
-              "branchingLogic": {
-                  "field": "extpsn",
-                  "value": "true"
-              }
-          },
-
-
 
         {
              "key": "cust_vars_title",
              "name": "<p style='font-size:large'>Custom Fields Settings</p>",
              "type": "descriptive",
-             "branchingLogic": {
-                "field": "extern",
-                "value": "true"
-             }
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "extern",
+                        "value": "true"
+                    }
+                ]
+            }
         },
         {
            "key": "cust-vars-list",
@@ -762,10 +896,19 @@
            "required": false,
            "type": "sub_settings",
            "repeatable":true,
-           "branchingLogic": {
-                "field": "extern",
-                "value": "true"
-           },
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "extern",
+                        "value": "true"
+                    }
+                ]
+            },
            "sub_settings":[
               {
                  "key": "custom_field",

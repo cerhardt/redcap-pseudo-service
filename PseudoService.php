@@ -59,8 +59,11 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         
         // Overwrite system settings
         if ($this->getProjectId() && $this->getProjectSetting("project_custom_settings") === true) {
+            // Overwrite Auth Types
+            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+                $this->aAuthTypes = array();
+            }
             // Authentication Types
-            $this->aAuthTypes = array();
             for($i=1;$i<=3;$i++) {
                 if (strlen($this->getProjectSetting("project_auth_type".$i)) > 0) {
                     $this->aAuthTypes[$i]['auth_type'] = $this->getProjectSetting("project_auth_type".$i);
@@ -73,25 +76,42 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             }
         
             // gPAS
-            $this->gpas_auth_type = $this->getProjectSetting("project_gpas_auth_type");
-            $this->gpas_url = $this->getProjectSetting("project_gpas_url");
-            $this->gpas_scope = $this->getProjectSetting("project_gpas_scope");
-            $this->gpas_domain_url = $this->getProjectSetting("project_gpas_domain_url");
-            $this->gpas_domain_scope = $this->getProjectSetting("project_gpas_domain_scope");
-            
+            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+                $this->gpas_auth_type = $this->getProjectSetting("project_gpas_auth_type");
+                $this->gpas_url = $this->getProjectSetting("project_gpas_url");
+                $this->gpas_scope = $this->getProjectSetting("project_gpas_scope");
+                $this->gpas_domain_url = $this->getProjectSetting("project_gpas_domain_url");
+                $this->gpas_domain_scope = $this->getProjectSetting("project_gpas_domain_scope");
+            }            
             // E-PIX
             $this->use_epix = $this->getProjectSetting("project_use_epix");
-            $this->epix_auth_type = $this->getProjectSetting("project_epix_auth_type");
-            $this->epix_url = $this->getProjectSetting("project_epix_url");
-            $this->epix_scope = $this->getProjectSetting("project_epix_scope");
-            $this->epix_domain = $this->getProjectSetting("project_epix_domain");
-            $this->epix_safe_source = $this->getProjectSetting("project_epix_safe_source");
-            $this->epix_external_source = $this->getProjectSetting("project_epix_external_source");
-            $this->epix_id_domain = $this->getProjectSetting("project_epix_id_domain");
-
+            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+                $this->epix_auth_type = $this->getProjectSetting("project_epix_auth_type");
+                $this->epix_url = $this->getProjectSetting("project_epix_url");
+                $this->epix_scope = $this->getProjectSetting("project_epix_scope");
+                $this->epix_domain = $this->getProjectSetting("project_epix_domain");
+                $this->epix_safe_source = $this->getProjectSetting("project_epix_safe_source");
+                $this->epix_external_source = $this->getProjectSetting("project_epix_external_source");
+                $this->epix_id_domain = $this->getProjectSetting("project_epix_id_domain");
+            }
             // SAP
             $this->use_sap = $this->getProjectSetting("project_use_sap");
         }
+        
+        // manual edit allowed?        
+        $this->manual_edit = false;
+
+        // SAP needs E-PIX
+        if ($this->use_sap === true) {
+            $this->use_epix = true;
+            
+            if ($this->getProjectId() && $this->getProjectSetting("extern") === true) {
+                $this->manual_edit = true;
+            }
+        }
+        if ($this->use_epix === true) {
+            $this->manual_edit = true;
+        }        
         
         // module index URL
         $this->moduleIndex = $this->replaceHost($this->getUrl('index.php'));        
@@ -314,7 +334,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if (!isset($this->aAuthTypes[$iAuthType])) return (false); 
 
         $aAuth = $this->aAuthTypes[$iAuthType];
-         
+
         // set core curl options
         $curl_options = array(
             CURLOPT_URL => $url,
@@ -465,20 +485,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->error = $sError;
     }
 
-    /**
-    * get login state of current session (TEIS) 
-    *
-    * @author  Christian Erhardt
-    * @access  public
-    * @return boolean is user logged in?
-    */
-    public function getlogin() {
-        if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
-            return (true);
-        }
-        return (false);
-    }
-    
+   
     /**
     * deactivate namespaces in soap xml
     *
