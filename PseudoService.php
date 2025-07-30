@@ -14,18 +14,19 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         parent::__construct();
         
         $this->AccessToken = array();
+        $this->SessionPrefix = '';
 
         // System settings
         // Authentication Types
-        $this->aAuthTypes = array();
+        $this->aSystemAuthTypes = array();
         for($i=1;$i<=3;$i++) {
             if (strlen($this->getSystemSetting("auth_type".$i)) > 0) {
-                $this->aAuthTypes[$i]['auth_type'] = $this->getSystemSetting("auth_type".$i);
-                $this->aAuthTypes[$i]['basic_name'] = $this->getSystemSetting("basic_name".$i);
-                $this->aAuthTypes[$i]['basic_secret'] = $this->getSystemSetting("basic_secret".$i);
-                $this->aAuthTypes[$i]['authorization_url'] = $this->getSystemSetting("authorization_url".$i);
-                $this->aAuthTypes[$i]['client_id'] = $this->getSystemSetting("client_id".$i);
-                $this->aAuthTypes[$i]['secret'] = $this->getSystemSetting("secret".$i);
+                $this->aSystemAuthTypes[$i]['auth_type'] = $this->getSystemSetting("auth_type".$i);
+                $this->aSystemAuthTypes[$i]['basic_name'] = $this->getSystemSetting("basic_name".$i);
+                $this->aSystemAuthTypes[$i]['basic_secret'] = $this->getSystemSetting("basic_secret".$i);
+                $this->aSystemAuthTypes[$i]['authorization_url'] = $this->getSystemSetting("authorization_url".$i);
+                $this->aSystemAuthTypes[$i]['client_id'] = $this->getSystemSetting("client_id".$i);
+                $this->aSystemAuthTypes[$i]['secret'] = $this->getSystemSetting("secret".$i);
             }
         }
         
@@ -61,16 +62,16 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if ($this->getProjectId() && $this->getProjectSetting("project_custom_settings") === true) {
             // Overwrite Auth Types
             if ($this->getProjectSetting("project_auth_overwrite") === true) {
-                $this->aAuthTypes = array();
+                $this->aProjectAuthTypes = array();
                 // Authentication Types
                 for($i=1;$i<=3;$i++) {
                     if (strlen($this->getProjectSetting("project_auth_type".$i)) > 0) {
-                        $this->aAuthTypes[$i]['auth_type'] = $this->getProjectSetting("project_auth_type".$i);
-                        $this->aAuthTypes[$i]['basic_name'] = $this->getProjectSetting("project_basic_name".$i);
-                        $this->aAuthTypes[$i]['basic_secret'] = $this->getProjectSetting("project_basic_secret".$i);
-                        $this->aAuthTypes[$i]['authorization_url'] = $this->getProjectSetting("project_authorization_url".$i);
-                        $this->aAuthTypes[$i]['client_id'] = $this->getProjectSetting("project_client_id".$i);
-                        $this->aAuthTypes[$i]['secret'] = $this->getProjectSetting("project_secret".$i);
+                        $this->aProjectAuthTypes[$i]['auth_type'] = $this->getProjectSetting("project_auth_type".$i);
+                        $this->aProjectAuthTypes[$i]['basic_name'] = $this->getProjectSetting("project_basic_name".$i);
+                        $this->aProjectAuthTypes[$i]['basic_secret'] = $this->getProjectSetting("project_basic_secret".$i);
+                        $this->aProjectAuthTypes[$i]['authorization_url'] = $this->getProjectSetting("project_authorization_url".$i);
+                        $this->aProjectAuthTypes[$i]['client_id'] = $this->getProjectSetting("project_client_id".$i);
+                        $this->aProjectAuthTypes[$i]['secret'] = $this->getProjectSetting("project_secret".$i);
                     }
                 }
 
@@ -164,9 +165,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
        }
 
        for($i=1;$i<=3;$i++) {
-            if (!isset($this->aAuthTypes[$i])) continue;
+            $aAuth = $this->getAuth($i);
+            if (!$aAuth) continue;
 
-            $aAuth = $this->aAuthTypes[$i];
             if ($aAuth['auth_type'] == 'oidc_flow') {
 
                 if (strlen($aAuth['authorization_url']) == 0) {
@@ -201,15 +202,15 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $provider = new \League\OAuth2\Client\Provider\GenericProvider($aOpt);
                 
                 // Token expired? -> Refresh Token
-                if (isset($_SESSION[$this->session][$i]['oauth2_expiredin']) && time() >= $_SESSION[$this->session][$i]['oauth2_expiredin']) {
+                if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) && time() >= $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) {
 
                     try {
                         $accessToken = $provider->getAccessToken('refresh_token', [
-                            'refresh_token' => $_SESSION[$this->session][$i]['oauth2_refreshtoken']
+                            'refresh_token' => $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken']
                         ]);
-                        $_SESSION[$this->session][$i]['oauth2_accesstoken'] = $accessToken->getToken();
-                        $_SESSION[$this->session][$i]['oauth2_expiredin'] = $accessToken->getExpires();
-                        $_SESSION[$this->session][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $accessToken->getToken();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin'] = $accessToken->getExpires();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
 
                     } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
                         // Failed to get the access token or user details.
@@ -219,8 +220,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 }
                 
                 // Already logged in: Get Token from session
-                if (isset($_SESSION[$this->session][$i]['oauth2_accesstoken'])) {
-                    $this->AccessToken[$i] = $_SESSION[$this->session][$i]['oauth2_accesstoken'];
+                if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'])) {
+                    $this->AccessToken[$i] = $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'];
                     return (true);
                 }
 
@@ -233,16 +234,16 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                     $authorizationUrl = $provider->getAuthorizationUrl();
 
                     // Get the state generated for you and store it to the session.
-                    $_SESSION[$this->session][$i]['oauth2_state'] = $provider->getState();
+                    $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'] = $provider->getState();
 
                     // Redirect the user to the authorization URL.
                     redirect($authorizationUrl);
                 
                 // Check given state against previously stored one to mitigate CSRF attack
-                } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session][$i]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session][$i]['oauth2_state'])) {
+                } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'])) {
                 
-                    if (isset($_SESSION[$this->session][$i]['oauth2_state'])) {
-                        unset($_SESSION[$this->session][$i]['oauth2_state']);
+                    if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'])) {
+                        unset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state']);
                     }
                     exit('Invalid state');
                 
@@ -253,9 +254,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                         $accessToken = $provider->getAccessToken('authorization_code', [
                             'code' => $_GET['code']
                         ]);
-                        $_SESSION[$this->session][$i]['oauth2_accesstoken'] = $accessToken->getToken();
-                        $_SESSION[$this->session][$i]['oauth2_expiredin'] = $accessToken->getExpires();
-                        $_SESSION[$this->session][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $accessToken->getToken();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin'] = $accessToken->getExpires();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
 
                     } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
                         // Failed to get the access token or user details.
@@ -263,14 +264,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                     }
                 
                 }    
-            
-                // redirect to data entry page after login
-                // ! moved from index.php because of wrong redirect in basic auth logic
-                if (isset($_SESSION[$this->session]['redirect'])) {
-                    $redirect = $_SESSION[$this->session]['redirect'];
-                    unset($_SESSION[$this->session]['redirect']);
-                    redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
-                }
             }
         }
     }
@@ -323,9 +316,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             $iAuthType = $this->gpas_auth_type;
         }
         if (strlen($url) == 0) return (false);
-        if (!isset($this->aAuthTypes[$iAuthType])) return (false); 
 
-        $aAuth = $this->aAuthTypes[$iAuthType];
+        $aAuth = $this->getAuth($iAuthType);
+        if (!$aAuth) return (false); 
 
         // set core curl options
         $curl_options = array(
@@ -339,8 +332,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         
         if ($aAuth['auth_type'] == 'oidc_flow' || $aAuth['auth_type'] == 'oidc_client') {
             // get access token from session
-            if (isset($_SESSION[$this->session][$iAuthType]['oauth2_accesstoken'])) {
-                $this->AccessToken[$iAuthType] = $_SESSION[$this->session][$iAuthType]['oauth2_accesstoken'];
+            if (isset($_SESSION[$this->session][$this->SessionPrefix][$iAuthType]['oauth2_accesstoken'])) {
+                $this->AccessToken[$iAuthType] = $_SESSION[$this->session][$this->SessionPrefix][$iAuthType]['oauth2_accesstoken'];
             } else {
                 return (false);
             }
@@ -369,6 +362,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if ($curl_info['http_code'] == '403') {
           throw new \Exception(strtoupper($psService).': keine Berechtigung!');
         } 
+        if ($curl_info['http_code'] == '502') {
+          throw new \Exception(strtoupper($psService).': Dienst nicht verfügbar!');
+        } 
 
         // curl error
         if ($err) {
@@ -386,6 +382,28 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         return($arrayResult);
     }
 
+    /**
+    * get Authentication settings
+    *
+    * @author  Christian Erhardt
+    * @param string $i Authentication Type
+    * @access  private
+    * @return mixed array/false
+    */
+    private function getAuth($i) {
+        if ($this->getProjectId() && $this->getProjectSetting("project_custom_settings") === true) {
+            // Overwrite Auth Types
+            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+                $this->SessionPrefix = $this->getProjectId();
+                if (!isset($this->aProjectAuthTypes[$i])) return false;
+                return ($this->aProjectAuthTypes[$i]);
+            }
+        }    
+        $this->SessionPrefix = '';
+        if (!isset($this->aSystemAuthTypes[$i])) return false;
+        return ($this->aSystemAuthTypes[$i]);
+    }
+    
     /**
     * check access
     *
