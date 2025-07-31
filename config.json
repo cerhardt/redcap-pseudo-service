@@ -964,6 +964,17 @@
           },
 
 
+          {
+               "key": "dag_title",
+               "name": "<p style='font-size:large'>DAG Setting</p>",
+               "type": "descriptive"
+          },
+          {
+              "key": "use_dags",
+              "name": "use DAGs for E-PIX access",
+              "super-users-only": true,
+              "type": "checkbox"
+          },
 
           {
                "key": "search_title",

@@ -12,6 +12,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     
     public function __construct() {
         parent::__construct();
+        global $user_rights;
         
         $this->AccessToken = array();
         $this->SessionPrefix = '';
@@ -145,6 +146,23 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $this->maxcnt = intval($this->getProjectSetting("maxcnt"));
             }
             $this->gpas_domain = $this->getProjectSetting("gpas_domain");
+
+            $this->group_id = '';
+            if ($this->getProjectSetting("use_dags") === true) {
+                // Check if the user is in a data access group (DAG)
+                $this->group_id = $user_rights['group_id'];
+            }
+            /*
+            // If $group_id is blank, then user is not in a DAG
+            if ($group_id == '') {
+            	print "User $this_user is NOT assigned to a data access group.";
+            } else {
+            	// User is in a DAG, so get the DAG's name to display
+            	print "User $this_user is assigned to the DAG named \"" . REDCap::getGroupNames(false, $group_id)
+            		. "\", whose unique group name is \"" . REDCap::getGroupNames(true, $group_id) . "\".";
+            }
+            */
+
         }
         
         $this->error = '';
