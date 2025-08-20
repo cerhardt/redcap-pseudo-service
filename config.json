@@ -37,57 +37,410 @@
 	],
 
 	"project-settings": [
-          {
-              "key": "save_sap_id",
-              "name": "save SAP-ID in REDCap",
-              "super-users-only": true,
-              "type": "checkbox",
-              "branchingLogic": {
-                "field": "use_sap",
-                "value": "true"
-              }
-          },
-          {
-              "key": "sap_id_field",
-              "name": "field to store SAP-ID <br><small style='color:#da0000;'>field needs to be marked as identifying</small></b style='color:black'> ",
-              "type": "field-list",
-              "autocomplete": true,
-              "super-users-only": true,
-                "branchingLogic": {
-                    "conditions": [
-                        {
-                            "field": "use_sap",
-                            "value": "true"
-                        },
-                        {
-                            "field": "save_sap_id",
-                            "value": "true"
-                        }
-                    ]
-                }
-          },
-          {
-              "key": "sap_id_event",
-              "name": "event to store SAP-ID",
-              "type": "event-list",
-              "super-users-only": true,
-                "branchingLogic": {
-                    "conditions": [
-                        {
-                            "field": "use_sap",
-                            "value": "true"
-                        },
-                        {
-                            "field": "save_sap_id",
-                            "value": "true"
-                        }
-                    ]
-                }
-          },
-
         {
-             "key": "project_title",
-             "name": "<p style='font-size:large'>Project Settings</p>",
+            "key": "project_custom_settings",
+            "name": "use custom project settings",
+            "super-users-only": true,
+            "type": "checkbox"
+        },
+        {
+            "key": "project_auth_overwrite",
+            "name": "overwrite system auth settings",
+            "super-users-only": true,
+            "type": "checkbox",
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
+        {
+             "key": "project_auth_title",
+             "name": "<p style='font-size:large'>Authentication Settings</p>",
+             "type": "descriptive",
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_auth_type1",
+            "name": "Login Authentication Type 1",
+            "required": true,
+            "super-users-only": true,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "basic",
+                "name": "Basic Auth"
+              },
+              {
+                "value": "oidc_client",
+                "name": "OIDC client credentials"
+              },
+              {
+                "value": "oidc_flow",
+                "name": "OIDC auth code flow"
+              }
+            ],
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_auth_name1",
+            "name": "Authentication 1: Name",
+            "required": false,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type1",
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
+            "key": "project_basic_name1",
+            "name": "Basic Auth 1: username",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type1",
+                "value": "basic"
+            }
+        },
+        {
+            "key": "project_basic_secret1",
+            "name": "Basic Auth 1: secret",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type1",
+                "value": "basic"
+            }
+        },
+        {
+            "key": "project_authorization_url1",
+            "name": "Authorization Server 1: URL",
+            "type": "text",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type1",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type1",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_client_id1",
+            "name": "OIDC Server 1: Client ID",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type1",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type1",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },    
+        {
+            "key": "project_secret1",
+            "name": "OIDC Server 1: Client secret",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type1",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type1",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },    
+        
+        {
+            "key": "project_auth_type2",
+            "name": "Login Authentication Type 2",
+            "required": false,
+            "super-users-only": true,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "basic",
+                "name": "Basic Auth"
+              },
+              {
+                "value": "oidc_client",
+                "name": "OIDC client credentials"
+              },
+              {
+                "value": "oidc_flow",
+                "name": "OIDC auth code flow"
+              }
+            ],
+            "branchingLogic": {
+                "field": "project_auth_type1",
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
+            "key": "project_auth_name2",
+            "name": "Authentication 2: Name",
+            "required": false,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type2",
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
+            "key": "project_basic_name2",
+            "name": "Basic Auth 2: username",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type2",
+                "value": "basic"
+            }
+        },
+        {
+            "key": "project_basic_secret2",
+            "name": "Basic Auth 2: secret",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type2",
+                "value": "basic"
+            }
+        },
+        {
+            "key": "project_authorization_url2",
+            "name": "Authorization Server 2: URL",
+            "type": "text",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type2",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type2",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_client_id2",
+            "name": "OIDC Server 2: Client ID",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type2",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type2",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },    
+        {
+            "key": "project_secret2",
+            "name": "OIDC Server 2: Client secret",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type2",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type2",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },    
+        
+        {
+            "key": "project_auth_type3",
+            "name": "Login Authentication Type 3",
+            "required": false,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "basic",
+                "name": "Basic Auth"
+              },
+              {
+                "value": "oidc_client",
+                "name": "OIDC client credentials"
+              },
+              {
+                "value": "oidc_flow",
+                "name": "OIDC auth code flow"
+              }
+            ],
+            "branchingLogic": {
+                "field": "project_auth_type2",
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
+            "key": "project_auth_name3",
+            "name": "Authentication 3: Name",
+            "required": false,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type3",
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
+            "key": "project_basic_name3",
+            "name": "Basic Auth 3: username",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type3",
+                "value": "basic"
+            }
+        },
+        {
+            "key": "project_basic_secret3",
+            "name": "Basic Auth 3: secret",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_auth_type3",
+                "value": "basic"
+            }
+        },
+        {
+            "key": "project_authorization_url3",
+            "name": "Authorization Server 3: URL",
+            "type": "text",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type3",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type3",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_client_id3",
+            "name": "OIDC Server 3: Client ID",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type3",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type3",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },    
+        {
+            "key": "project_secret3",
+            "name": "OIDC Server 3: Client secret",
+            "type": "password",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "or",
+                "conditions": [
+                    {
+                        "field": "project_auth_type3",
+                        "value": "oidc_client"
+                    },
+                    {
+                        "field": "project_auth_type3",
+                        "value": "oidc_flow"
+                    }
+                ]
+            }
+        },    
+        
+        {
+             "key": "project_gpas_title",
+             "name": "<p style='font-size:large'>gPAS Settings</p>",
              "type": "descriptive"
         },
         {
@@ -97,36 +450,16 @@
             "super-users-only": true,
             "type": "text"
         },
-        {
-            "key": "use_9_digits_pat_id",
-            "name": "allow 9 digits input for Pat.-ID (default: 10 digits)",
-            "type": "checkbox",
-            "super-users-only": true
-        },
-        {
-            "key": "extern",
-            "name": "use external probands",
-            "super-users-only": true,
-            "type": "checkbox",
-            "branchingLogic": {
-                "field": "use_epix",
-                "value": "true"
-            }
-        },
-        {
-             "key": "extpsn_title",
-             "name": "<p style='font-size:large'>External IDs Settings</p>",
-             "type": "descriptive"
-        },
+
           {
             "key": "extpsn",
-            "name": "use external IDs",
+            "name": "store pseudonyms in gPAS",
             "super-users-only": true,
             "type": "checkbox"
           },
           {
               "key": "extpsn_label",
-              "name": "Custom label for ID field",
+              "name": "Custom label for pseudonym field",
               "type": "text",
               "super-users-only": true,
               "branchingLogic": {
@@ -136,8 +469,18 @@
           },
           {
               "key": "extpsn_prefix",
-              "name": "extPSN: prefix",
+              "name": "prefix",
               "type": "text",
+              "super-users-only": true,
+              "branchingLogic": {
+                  "field": "extpsn",
+                  "value": "true"
+              }
+          },
+          {
+              "key": "validate_pat_id",
+              "name": "validate Pat-ID",
+              "type": "checkbox",
               "super-users-only": true,
               "branchingLogic": {
                   "field": "extpsn",
@@ -149,10 +492,19 @@
               "name": "allow 9 digits input for Pat.-ID (default: 10 digits)",
               "type": "checkbox",
               "super-users-only": true,
-              "branchingLogic": {
-                  "field": "extpsn",
-                  "value": "true"
-              }
+                "branchingLogic": {
+                    "type": "and",
+                    "conditions": [
+                        {
+                            "field": "extpsn",
+                            "value": "true"
+                        },
+                        {
+                            "field": "validate_pat_id",
+                            "value": "true"
+                        }
+                    ]
+                }
           },
           {
               "key": "extpsn_field",
@@ -175,14 +527,360 @@
                   "value": "true"
               }
           },
+
+        {
+            "key": "project_gpas_url",
+            "name": "gPAS API URL",
+            "required": true,
+            "type": "text",
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_gpas_auth_type",
+            "name": "gPAS Authentication Type",
+            "required": true,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "1",
+                "name": "Project Auth Type 1"
+              },
+              {
+                "value": "2",
+                "name": "Project Auth Type 2"
+              },
+              {
+                "value": "3",
+                "name": "Project Auth Type 3"
+              }
+            ],
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        
+        {
+            "key": "project_gpas_scope",
+            "name": "gPAS OIDC Scope",
+            "required": false,
+            "type": "text",
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_gpas_domain_url",
+            "name": "gPAS Domain API URL",
+            "required": true,
+            "type": "text",
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_gpas_domain_scope",
+            "name": "gPAS Domain Scope",
+            "required": false,
+            "type": "text",
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_custom_settings",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+
+        {
+             "key": "project_epix_title",
+             "name": "<p style='font-size:large'>E-PIX Settings</p>",
+             "type": "descriptive",
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
+        {
+            "key": "project_use_epix",
+            "name": "Use E-PIX?",
+            "type": "checkbox",
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
+        {
+            "key": "project_epix_auth_type",
+            "name": "E-PIX Authentication Type",
+            "required": true,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "1",
+                "name": "Project Auth Type 1"
+              },
+              {
+                "value": "2",
+                "name": "Project Auth Type 2"
+              },
+              {
+                "value": "3",
+                "name": "Project Auth Type 3"
+              }
+            ],
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_epix_url",
+            "name": "E-PIX API URL",
+            "required": true,
+            "type": "text",
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_epix_scope",
+            "name": "E-PIX OIDC Scope",
+            "required": false,
+            "type": "text",
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_epix_domain",
+            "name": "E-PIX Domain",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_epix_safe_source",
+            "name": "E-PIX safe source",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_epix_external_source",
+            "name": "E-PIX external source",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+            "key": "project_epix_id_domain",
+            "name": "E-PIX ID Domain",
+            "required": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "type": "and",
+                "conditions": [
+                    {
+                        "field": "project_use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "project_auth_overwrite",
+                        "value": "true"
+                    }
+                ]
+            }
+        },
+        {
+             "key": "project_sap_title",
+             "name": "<p style='font-size:large'>SAP Settings</p>",
+             "type": "descriptive",
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
+        {
+            "key": "project_use_sap",
+            "name": "Use SAP?",
+            "super-users-only": true,
+            "type": "checkbox",
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
+
+
+          {
+              "key": "save_sap_id",
+              "name": "save SAP-ID in REDCap",
+              "super-users-only": true,
+              "type": "checkbox",
+                "branchingLogic": {
+                    "field": "project_custom_settings",
+                    "value": "true"
+                }
+          },
+          {
+              "key": "sap_id_field",
+              "name": "field to store SAP-ID <br><small style='color:#da0000;'>field needs to be marked as identifying</small></b style='color:black'> ",
+              "type": "field-list",
+              "autocomplete": true,
+              "super-users-only": true,
+                "branchingLogic": {
+                    "field": "project_custom_settings",
+                    "value": "true"
+                }
+          },
+          {
+              "key": "sap_id_event",
+              "name": "event to store SAP-ID",
+              "type": "event-list",
+              "super-users-only": true,
+                "branchingLogic": {
+                    "field": "project_custom_settings",
+                    "value": "true"
+                }
+          },
+
+        
+        {
+            "key": "extern",
+            "name": "use additional external probands",
+            "super-users-only": true,
+            "type": "checkbox",
+                "branchingLogic": {
+                    "field": "project_custom_settings",
+                    "value": "true"
+                }
+        },
+
         {
              "key": "cust_vars_title",
              "name": "<p style='font-size:large'>Custom Fields Settings</p>",
              "type": "descriptive",
-             "branchingLogic": {
+            "branchingLogic": {
+                "type": "or",
                 "conditions": [
                     {
-                        "field": "use_epix",
+                        "field": "project_use_epix",
                         "value": "true"
                     },
                     {
@@ -190,7 +888,7 @@
                         "value": "true"
                     }
                 ]
-             }
+            }
         },
         {
            "key": "cust-vars-list",
@@ -198,10 +896,11 @@
            "required": false,
            "type": "sub_settings",
            "repeatable":true,
-           "branchingLogic": {
+            "branchingLogic": {
+                "type": "or",
                 "conditions": [
                     {
-                        "field": "use_epix",
+                        "field": "project_use_epix",
                         "value": "true"
                     },
                     {
@@ -209,7 +908,7 @@
                         "value": "true"
                     }
                 ]
-           },
+            },
            "sub_settings":[
               {
                  "key": "custom_field",
@@ -263,6 +962,20 @@
               }
            ]
           },
+
+
+          {
+               "key": "dag_title",
+               "name": "<p style='font-size:large'>DAG Setting</p>",
+               "type": "descriptive"
+          },
+          {
+              "key": "use_dags",
+              "name": "use DAGs for E-PIX access",
+              "super-users-only": true,
+              "type": "checkbox"
+          },
+
           {
                "key": "search_title",
                "name": "<p style='font-size:large'>Search Setting</p>",
@@ -280,15 +993,13 @@
 	"system-settings": [
         {
              "key": "auth_title",
-             "name": "<p style='font-size:large'>Authorization Settings</p>",
-             "type": "descriptive",
-             "allow-project-overrides": true
+             "name": "<p style='font-size:large'>Authentication Settings</p>",
+             "type": "descriptive"
         },
         {
             "key": "auth_type1",
             "name": "Login Authentication Type 1",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "type": "dropdown",
             "choices": [
@@ -307,11 +1018,21 @@
             ]
         },
         {
+            "key": "auth_name1",
+            "name": "Authentication 1: Name",
+            "required": false,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type1",
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
             "key": "basic_name1",
             "name": "Basic Auth 1: username",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "auth_type1",
@@ -323,7 +1044,6 @@
             "name": "Basic Auth 1: secret",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "auth_type1",
@@ -335,7 +1055,6 @@
             "name": "Authorization Server 1: URL",
             "type": "text",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -356,7 +1075,6 @@
             "name": "OIDC Server 1: Client ID",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -377,7 +1095,6 @@
             "name": "OIDC Server 1: Client secret",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -397,8 +1114,7 @@
         {
             "key": "auth_type2",
             "name": "Login Authentication Type 2",
-            "required": true,
-            "allow-project-overrides": true,
+            "required": false,
             "super-users-only": true,
             "type": "dropdown",
             "choices": [
@@ -417,7 +1133,19 @@
             ],
             "branchingLogic": {
                 "field": "auth_type1",
-                "value": "true"
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
+            "key": "auth_name2",
+            "name": "Authentication 2: Name",
+            "required": false,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type2",
+                "op": "<>",
+                "value": ""
             }
         },
         {
@@ -425,7 +1153,6 @@
             "name": "Basic Auth 2: username",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "auth_type2",
@@ -437,7 +1164,6 @@
             "name": "Basic Auth 2: secret",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "auth_type2",
@@ -449,7 +1175,6 @@
             "name": "Authorization Server 2: URL",
             "type": "text",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -470,7 +1195,6 @@
             "name": "OIDC Server 2: Client ID",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -491,7 +1215,6 @@
             "name": "OIDC Server 2: Client secret",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -512,7 +1235,6 @@
             "key": "auth_type3",
             "name": "Login Authentication Type 3",
             "required": false,
-            "allow-project-overrides": true,
             "type": "dropdown",
             "choices": [
               {
@@ -530,7 +1252,19 @@
             ],
             "branchingLogic": {
                 "field": "auth_type2",
-                "value": "true"
+                "op": "<>",
+                "value": ""
+            }
+        },
+        {
+            "key": "auth_name3",
+            "name": "Authentication 3: Name",
+            "required": false,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "auth_type3",
+                "op": "<>",
+                "value": ""
             }
         },
         {
@@ -538,7 +1272,6 @@
             "name": "Basic Auth 3: username",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "auth_type3",
@@ -550,7 +1283,6 @@
             "name": "Basic Auth 3: secret",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "auth_type3",
@@ -562,7 +1294,6 @@
             "name": "Authorization Server 3: URL",
             "type": "text",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -583,7 +1314,6 @@
             "name": "OIDC Server 3: Client ID",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -604,7 +1334,6 @@
             "name": "OIDC Server 3: Client secret",
             "type": "password",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
@@ -656,10 +1385,30 @@
         },
         
         {
+            "key": "gpas_auth_type",
+            "name": "gPAS Authentication Type",
+            "required": true,
+            "type": "dropdown",
+            "choices": [
+              {
+                "value": "1",
+                "name": "System Auth Type 1"
+              },
+              {
+                "value": "2",
+                "name": "System Auth Type 2"
+              },
+              {
+                "value": "3",
+                "name": "System Auth Type 3"
+              }
+            ]
+        },
+        
+        {
             "key": "gpas_scope",
             "name": "gPAS OIDC Scope",
             "required": false,
-            "allow-project-overrides": true,
             "type": "text"
         },
         {
@@ -673,28 +1422,24 @@
             "key": "gpas_domain_scope",
             "name": "gPAS Domain Scope",
             "required": false,
-            "allow-project-overrides": true,
             "type": "text"
         },
 
         {
              "key": "epix_title",
              "name": "<p style='font-size:large'>E-PIX Settings</p>",
-             "type": "descriptive",
-             "allow-project-overrides": true
+             "type": "descriptive"
         },
         {
             "key": "use_epix",
             "name": "Use E-PIX?",
             "type": "checkbox",
-            "allow-project-overrides": true,
             "super-users-only": true
         },
         {
             "key": "epix_auth_type",
             "name": "E-PIX Authentication Type",
             "required": true,
-            "allow-project-overrides": true,
             "type": "dropdown",
             "choices": [
               {
@@ -716,17 +1461,10 @@
             }
         },
         {
-            "key": "epix_integrate",
-            "name": "use E-PIX",
-            "super-users-only": true,
-            "type": "checkbox"
-        },
-        {
             "key": "epix_url",
             "name": "E-PIX API URL",
             "required": true,
             "type": "text",
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "use_epix",
@@ -738,7 +1476,6 @@
             "name": "E-PIX OIDC Scope",
             "required": false,
             "type": "text",
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "use_epix",
@@ -749,7 +1486,6 @@
             "key": "epix_domain",
             "name": "E-PIX Domain",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "use_epix",
@@ -760,7 +1496,6 @@
             "key": "epix_safe_source",
             "name": "E-PIX safe source",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "use_epix",
@@ -771,7 +1506,6 @@
             "key": "epix_external_source",
             "name": "E-PIX external source",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "use_epix",
@@ -782,7 +1516,6 @@
             "key": "epix_id_domain",
             "name": "E-PIX ID Domain",
             "required": true,
-            "allow-project-overrides": true,
             "super-users-only": true,
             "branchingLogic": {
                 "field": "use_epix",
@@ -792,13 +1525,11 @@
         {
              "key": "sap_title",
              "name": "<p style='font-size:large'>SAP Settings</p>",
-             "type": "descriptive",
-             "allow-project-overrides": true
+             "type": "descriptive"
         },
         {
             "key": "use_sap",
             "name": "Use SAP?",
-            "allow-project-overrides": true,
             "super-users-only": true,
             "type": "checkbox"
         },
@@ -821,86 +1552,144 @@
                 "name": "Auth Type 3"
               }
             ],
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": true
-            }
-        },
-        {
-            "key": "sap_integrate",
-            "name": "use SAP",
-            "super-users-only": true,
-            "type": "checkbox"
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "sap_url",
             "name": "SAP API URL",
             "required": true,
             "type": "text",
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": true
-            }
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "sap_scope",
             "name": "SAP OIDC Scope",
             "required": false,
             "type": "text",
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": true
-            }
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "sap_filter_pid",
             "name": "SAP Filter: IS-H ID",
             "required": true,
             "type": "text",
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": "true"
-            }
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "sap_filter_lastname",
             "name": "SAP Filter: Last Name",
             "required": true,
             "type": "text",
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": "true"
-            }
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "sap_filter_firstname",
             "name": "SAP Filter: First Name",
             "required": true,
             "type": "text",
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": "true"
-            }
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "sap_filter_dob_from",
             "name": "SAP Filter: Date of Birth FROM",
             "required": true,
             "type": "text",
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": "true"
-            }
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "sap_filter_dob_to",
             "name": "SAP Filter: Date of Birth TO",
             "required": true,
             "type": "text",
-            "branchingLogic": {
-                "field": "use_sap",
-                "value": "true"
-            }
+           "branchingLogic": {
+                "conditions": [
+                    {
+                        "field": "use_epix",
+                        "value": "true"
+                    },
+                    {
+                        "field": "use_sap",
+                        "value": "true"
+                    }
+                ]
+           }
         },
         {
             "key": "use_proxy",

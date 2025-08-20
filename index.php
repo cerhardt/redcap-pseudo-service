@@ -7,11 +7,13 @@ use \REDCap as REDCap;
 use \Logging as Logging;
 use \RCView as RCView;
 
-include_once('CheckDigit.php');
+if ($module->getProjectSetting("validate_pat_id") === true) {
+    include_once('CheckDigit.php');
+}
 
 $sExit = '';
-// exit if gPAS domain and auth type is not configured
-if (strlen($module->getProjectSetting("gpas_domain")) == 0 || strlen($module->getProjectSetting("auth_type")) == 0) {
+// exit if gPAS domain is not configured or no auth type is defined
+if (strlen($module->getProjectSetting("gpas_domain")) == 0 || strlen($module->getSystemSetting("auth_type1")) == 0) {
     $sExit = 'please configure the module first!';
 }
 
@@ -34,16 +36,15 @@ if (strlen($sExit) > 0) {
 // initialization
 // ================================================================================================
 
-// SAP class
-$oSAPPatientSearch = new SAPPatientSearch();
-
-// login
-$oSAPPatientSearch->login();
-
-
 // E-PIX/gPAS class
 $oPseudoService = new EPIX_gPAS();
+// login
+$oPseudoService->login();
 
+if ($oPseudoService->use_sap === true) {
+    // SAP class
+    $oSAPPatientSearch = new SAPPatientSearch();
+}
 
 // mode: search / create / export / import / delete: POST overwrites GET
 $sMode = $_GET['mode'];
@@ -89,16 +90,21 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
         $i = 0;
         $aEpixResult = array();
         $bPatientSearch = true;
+        
+        // patient search only when E-PIX is enabled
+        if ($oPseudoService->use_epix !== true) {
+            $bPatientSearch = false;
+        }
 
         // external pseudonym
         if ($module->getProjectSetting("extpsn") === true) {
-            if (strlen($_POST['extPS']) > 0 ) {
+            if (strlen($_POST['extID']) > 0 ) {
                 $bPatientSearch = false;
-                $aResult = $oPseudoService->getPseudonymForValuePrefix($module->getProjectSetting("extpsn_prefix").$_POST['extPS']);
-                Logging::logEvent('', $module->getModuleName(), "OTHER", '', print_r($_POST,true), "extPSN search");
+                $aResult = $oPseudoService->getPseudonymForValuePrefix($module->getProjectSetting("extpsn_prefix").$_POST['extID']);
+                Logging::logEvent('', $module->getModuleName(), "OTHER", '', print_r($_POST,true), "extID search");
                 
                 foreach($aResult as $key => $aPat) {
-                    $aEpixResult[$i]['extpsn'] = substr($aPat['key'], strlen($module->getProjectSetting("extpsn_prefix")));
+                    $aEpixResult[$i]['extid'] = substr($aPat['key'], strlen($module->getProjectSetting("extpsn_prefix")));
                     $aEpixResult[$i]['psn'] = $aPat['value'];
                     
                     $i++;
@@ -111,7 +117,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             //Logging::logEvent('', $module->getModuleName(), "OTHER", '', '', "search");
     
             // SAP search only if user has create access
-            if (PseudoService::isAllowed('create')) {
+            if (PseudoService::isAllowed('create') && $oPseudoService->use_sap === true) {
 
                 $aResult = $oSAPPatientSearch->searchPersons_SAP($_POST);
 
@@ -149,21 +155,23 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
         
                     // get SAP-ID (ID_DOMAIN)
                     $aISH_IDs = array();
-                    if (isset($aRefIdentity['identifiers'])) {
-                        // only 1 hit: convert array
-                        $aIdentifier = array();
-                        if (isset($aRefIdentity['identifiers']['identifierDomain'])) {
-                            $aIdentifier[] = $aRefIdentity['identifiers'];
-                        } else {
-                            $aIdentifier = $aRefIdentity['identifiers'];
-                        }
-                        foreach($aIdentifier as $aId) {
-                            if ($aId['identifierDomain']['name'] == $oPseudoService->epix_id_domain) {
-                                $aISH_IDs[] = $aId['value'];
+                    if ($oPseudoService->use_sap === true) {
+                        if (isset($aRefIdentity['identifiers'])) {
+                            // only 1 hit: convert array
+                            $aIdentifier = array();
+                            if (isset($aRefIdentity['identifiers']['identifierDomain'])) {
+                                $aIdentifier[] = $aRefIdentity['identifiers'];
+                            } else {
+                                $aIdentifier = $aRefIdentity['identifiers'];
+                            }
+                            foreach($aIdentifier as $aId) {
+                                if ($aId['identifierDomain']['name'] == $oPseudoService->epix_id_domain) {
+                                    $aISH_IDs[] = $aId['value'];
+                                }
                             }
                         }
-                    }
-                    
+                    }            
+        
                     // get all PSNs for given MPI 
                     $bOtherProjects = false;
                     $bPSNInProject = false;
@@ -263,26 +271,40 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
   // ================================================================================================
   if ($sMode == 'create' && PseudoService::isAllowed('create')) {
       // external pseudonyms: create PSN
-      if ($module->getProjectSetting("extpsn") === true && strlen($_POST['extPS']) > 0) {
-          $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$_POST['extPS']);
+      if ($module->getProjectSetting("extpsn") === true && strlen($_POST['extID']) > 0) {
+
+            $sExtPS = $_POST['extID'];
+            if ($module->getProjectSetting("validate_pat_id") === true) {
+                $validatedID = CheckDigit::validateID($sExtPS);
+
+                if (strlen($validatedID) === 10) {
+                    $sExtPS = substr($validatedID, 0, 9);
+                } elseif ($validatedID == -1) {
+                    // incorrect check digit for given pat id: user feedback and return to index page
+                    $oPseudoService->setError("Die Prüfziffer (d.h. die 10. Stelle) ist nicht korrekt! Erneute Eingabe nötig.");
+                }
+            }
+            
+          $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
           if (!$mEpixResult) {
-              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$_POST['extPS']);
+              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
+
               // redcap log
-              Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extPS'].": ".$sPSN, "extPSN: psn created");
+              Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sExtPS.": ".$sPSN, "extID: psn created");
               // save pseudonym in REDCap study
-              $oPseudoService->createREDCap($sPSN, $_POST['extPS']);
+              $oPseudoService->createREDCap($sPSN, $sExtPS);
           } else {
               $oPseudoService->setError("Dieses Pseudonym existiert bereits!");
           }
       }
 
       // external probands: create PSN
-      if ($module->getProjectSetting("extern") === true) {
+      if ($oPseudoService->manual_edit === true) {
           if (strlen($_POST['firstName']) > 0 && 
             strlen($_POST['lastName']) > 0 && 
             strlen($_POST['gender']) > 0 &&
             strlen($_POST['birthDate']) > 0 &&
-            strlen($_POST['extPS']) == 0 && 
+            strlen($_POST['extID']) == 0 && 
             strlen($iISH_ID_ENC) == 0) {
 
             $aResult = $oPseudoService->requestMPI($_POST);
@@ -364,7 +386,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
         $aHeader = array();
         $aHeader['psn'] = true;
         
-        // build filter for E-PIX and get extPSNs for csv array
+        // build filter for E-PIX and get extIDs for csv array
         $i = 0;
         foreach($agPASMap as $original => $psn) {
             $aCSV[$i]['psn'] = $psn;
@@ -372,8 +394,8 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             if ($module->getProjectSetting("extpsn") === true) {
                 if (str_starts_with($original,$module->getProjectSetting("extpsn_prefix"))) {
                     $original = substr($original, strlen($module->getProjectSetting("extpsn_prefix")));
-                    $aCSV[$i]['extPSN'] = $original;
-                    $aHeader['extPSN'] = true;
+                    $aCSV[$i]['extID'] = $original;
+                    $aHeader['extID'] = true;
                     $i++;
                     continue;
                 }
@@ -382,7 +404,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             $i++;
         }
         
-        if (count($aEPIXFilter) > 0) {
+        if (count($aEPIXFilter) > 0 && $oPseudoService->use_epix === true) {
             // get personal data from E-PIX
             $aItems = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
 
@@ -396,7 +418,9 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             unset($aItems);
 
             // header vars for personal data
-            $aHeader['SAP-ID'] = true;
+            if ($oPseudoService->use_sap === true) {
+                $aHeader['SAP-ID'] = true;
+            }
             $aHeader['gender'] = true;
             $aHeader['degree'] = true;
             $aHeader['firstName'] = true;
@@ -415,21 +439,23 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                 if (isset($aRefIdentity[$aRow['psn']])) {
 
                     $aISH_IDs = array();
-                    if (isset($aRefIdentity[$aRow['psn']]['identifiers'])) {
-                        // only 1 hit: convert array
-                        $aIdentifier = array();
-                        if (isset($aRefIdentity[$aRow['psn']]['identifiers']['identifierDomain'])) {
-                            $aIdentifier[] = $aRefIdentity[$aRow['psn']]['identifiers'];
-                        } else {
-                            $aIdentifier = $aRefIdentity[$aRow['psn']]['identifiers'];
-                        }
-                        foreach($aIdentifier as $aId) {
-                            if ($aId['identifierDomain']['name'] == $oPseudoService->epix_id_domain) {
-                                $aISH_IDs[] = $aId['value'];
+                    if ($oPseudoService->use_sap === true) {
+                        if (isset($aRefIdentity[$aRow['psn']]['identifiers'])) {
+                            // only 1 hit: convert array
+                            $aIdentifier = array();
+                            if (isset($aRefIdentity[$aRow['psn']]['identifiers']['identifierDomain'])) {
+                                $aIdentifier[] = $aRefIdentity[$aRow['psn']]['identifiers'];
+                            } else {
+                                $aIdentifier = $aRefIdentity[$aRow['psn']]['identifiers'];
+                            }
+                            foreach($aIdentifier as $aId) {
+                                if ($aId['identifierDomain']['name'] == $oPseudoService->epix_id_domain) {
+                                    $aISH_IDs[] = $aId['value'];
+                                }
                             }
                         }
                     }
-
+                    
                     if (count($aISH_IDs) > 0) {
                         $aCSV[$i]['SAP-ID'] = implode(", ",$aISH_IDs);
                     } 
@@ -559,22 +585,22 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       continue;
                   }
                   
-                  // extPSN
-                  if ($module->getProjectSetting("extpsn") === true && strlen($aRow['extPSN']) > 0) {
+                  // extID
+                  if ($module->getProjectSetting("extpsn") === true && strlen($aRow['extID']) > 0) {
                       // does psn already exist?
-                      $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$aRow['extPSN']);
+                      $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$aRow['extID']);
                       if (!$mEpixResult) {
                           // create new value -> psn pair
                           if ($sPSN_mode == 'import') {
                               $sPSN = $aRow['psn'];
-                              if (!$oPseudoService->insertValuePseudonymPair($module->getProjectSetting("extpsn_prefix").$aRow['extPSN'], $sPSN)) {
+                              if (!$oPseudoService->insertValuePseudonymPair($module->getProjectSetting("extpsn_prefix").$aRow['extID'], $sPSN)) {
                                   $aCSV[$i]['error'] = $oPseudoService->getError();
                                   continue;
                               }
                           }
                           // create new psn
                           if ($sPSN_mode == 'create') {
-                              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$_POST['extPSN']);
+                              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$_POST['extID']);
                               if (!$sPSN) {
                                   $aCSV[$i]['error'] = $oPseudoService->getError();
                                   continue;
@@ -583,10 +609,10 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                           }
 
                           $aCSV[$i]['imported'] = $sPSN_mode;
-                          Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extPSN'].": ".$oPseudoService->trimZero($sPSN), "extPSN: psn created");
+                          Logging::logEvent('', $module->getModuleName(), "OTHER", '', $_POST['extID'].": ".$oPseudoService->trimZero($sPSN), "extID: psn created");
 
                           // create REDCap entry
-                          if (!$oPseudoService->createREDCap($sPSN, $aRow['extPSN'])) {
+                          if (!$oPseudoService->createREDCap($sPSN, $aRow['extID'])) {
                               $aCSV[$i]['error'] = $oPseudoService->getError();
                           }
                       } else {
@@ -621,12 +647,12 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   }
 
                   // external probands: create PSN
-                  if ($module->getProjectSetting("extern") === true && 
+                  if ($oPseudoService->manual_edit === true && 
                         strlen($aRow['firstName']) > 0 && 
                         strlen($aRow['lastName']) > 0 && 
                         strlen($aRow['gender']) > 0 &&
                         strlen($aRow['birthDate']) > 0 &&
-                        strlen($aRow['extPS']) == 0 &&
+                        strlen($aRow['extID']) == 0 &&
                         strlen($aRow['SAP-ID']) == 0) {
                       
                         $aResult = $oPseudoService->requestMPI($aRow);
@@ -635,17 +661,15 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                             continue;
                         }
                       
-                  }  elseif (strlen($aRow['SAP-ID']) > 0) {
+                  }  elseif ($oPseudoService->use_sap === true && strlen($aRow['SAP-ID']) > 0) {
                       // probands from SAP
                       $ishId = ltrim($aRow['SAP-ID'],'0');
-                      if ($oSAPPatientSearch->getlogin()) {
 
-                          // create / get MPI with SAP-ID
-                          $aResult = $oSAPPatientSearch->requestMPI_SAP($ishId, $aRow);
-                          if (!is_array($aResult)) {
-                              $aCSV[$i]['error'] = $oSAPPatientSearch->getError();
-                              continue;
-                          }
+                      // create / get MPI with SAP-ID
+                      $aResult = $oSAPPatientSearch->requestMPI_SAP($ishId, $aRow);
+                      if (!is_array($aResult)) {
+                          $aCSV[$i]['error'] = $oSAPPatientSearch->getError();
+                          continue;
                       }
                   } else {
                       // nothing to do
@@ -726,7 +750,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 // ================================================================================================
 // dubletten
 // ================================================================================================
-if ($sMode == 'dubletten' && PseudoService::isAllowed('edit')) {
+if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) {
     // keep person 1 or 2
     if (isset($_POST['assignIdentity'])) {
       $aTmp = explode(":",$_POST['assignIdentity']);
@@ -749,62 +773,60 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit')) {
 if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] != '1') {
 
     // SAP-ID from search result
-    if (strlen($iISH_ID_ENC) > 0) {
+    if (strlen($iISH_ID_ENC) > 0 && $oPseudoService->use_sap === true) {
         $ishId_dc = decrypt($iISH_ID_ENC,$_SESSION[$oPseudoService->session]['enckey']);
         if ($ishId_dc) {
             $ishId = ltrim($ishId_dc,'0');
-            if ($oSAPPatientSearch->getlogin()) {
-                // create access?
-                if (PseudoService::isAllowed('create')) {
-                    // create / get MPI with SAP-ID
-                    $aResult = $oSAPPatientSearch->requestMPI_SAP($ishId, $_POST);
+            // create access?
+            if (PseudoService::isAllowed('create')) {
+                // create / get MPI with SAP-ID
+                $aResult = $oSAPPatientSearch->requestMPI_SAP($ishId, $_POST);
 
-                    if (strlen($iMPI_ID_ENC) > 0) {
-                        if (!$aResult) {
-                            $_SESSION[$oPseudoService->session]['msg'] = $oSAPPatientSearch->getError();
-                        } else {
-                            $_SESSION[$oPseudoService->session]['msg'] = 'Die Personendaten wurden aktualisiert!';
-                        }
-                        redirect($module->moduleIndex);
+                if (strlen($iMPI_ID_ENC) > 0) {
+                    if (!$aResult) {
+                        $_SESSION[$oPseudoService->session]['msg'] = $oSAPPatientSearch->getError();
+                    } else {
+                        $_SESSION[$oPseudoService->session]['msg'] = 'Die Personendaten wurden aktualisiert!';
                     }
+                    redirect($module->moduleIndex);
+                }
 
-                    if (is_array($aResult)) {
-                        if (isset($aResult['return']['person']['mpiId']['value'])) {
-                            $mpiId_create = $aResult['return']['person']['mpiId']['value'];
-                        } elseif (isset($aResult['mpiId']['value'])) {
-                            $mpiId_create = $aResult['mpiId']['value'];
-                        }
-                        if (isset($aResult['return']['matchStatus'])) {
-                            $matchStatus = $aResult['return']['matchStatus'];
-                        }
-                        /*
-                        if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
-                            Logging::logEvent('', $module->getModuleName(), "OTHER", '', $mpiId_create, "MPI created");
-                        } 
-                        */ 
-                        $sPSNTmp = $oPseudoService->getPseudonymFor($mpiId_create);
-                        if ((($sPSNTmp == false && count($_POST) == 0) || $matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') && strlen($module->getProjectSetting("custom_field")[0]) > 0) {
-                            $sMode = 'create';
-                        } else {
-                            // create / get PSN
-                            $sPSN = $oPseudoService->getOrCreatePseudonymFor($mpiId_create);
-                            if ($sPSN) {
-                                $oPseudoService->createREDCap($sPSN, '', $ishId);
-                                // redcap log
-                                Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved");
-                            }
-                        }
+                if (is_array($aResult)) {
+                    if (isset($aResult['return']['person']['mpiId']['value'])) {
+                        $mpiId_create = $aResult['return']['person']['mpiId']['value'];
+                    } elseif (isset($aResult['mpiId']['value'])) {
+                        $mpiId_create = $aResult['mpiId']['value'];
+                    }
+                    if (isset($aResult['return']['matchStatus'])) {
+                        $matchStatus = $aResult['return']['matchStatus'];
+                    }
+                    /*
+                    if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
+                        Logging::logEvent('', $module->getModuleName(), "OTHER", '', $mpiId_create, "MPI created");
                     } 
-                } else {
-                    // only search access!
-                    $mpiId = $oPseudoService->getActivePersonByLocalIdentifier($ishId);
-                    if ($mpiId) {
-                        // get PSN
-                        $sPSN = $oPseudoService->getPseudonymFor($mpiId);
+                    */ 
+                    $sPSNTmp = $oPseudoService->getPseudonymFor($mpiId_create);
+                    if ((($sPSNTmp == false && count($_POST) == 0) || $matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') && strlen($module->getProjectSetting("custom_field")[0]) > 0) {
+                        $sMode = 'create';
+                    } else {
+                        // create / get PSN
+                        $sPSN = $oPseudoService->getOrCreatePseudonymFor($mpiId_create);
                         if ($sPSN) {
+                            $oPseudoService->createREDCap($sPSN, '', $ishId);
                             // redcap log
                             Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved");
                         }
+                    }
+                } 
+            } else {
+                // only search access!
+                $mpiId = $oPseudoService->getActivePersonByLocalIdentifier($ishId);
+                if ($mpiId) {
+                    // get PSN
+                    $sPSN = $oPseudoService->getPseudonymFor($mpiId);
+                    if ($sPSN) {
+                        // redcap log
+                        Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved");
                     }
                 }
             }
@@ -851,10 +873,10 @@ if ($sMode == 'delete' && isset($_GET['del_mpiid_enc']) && PseudoService::isAllo
                     // redcap log
                     Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSNTmp, "PSN deleted");
         
-                    // extPSN? skip E-PIX
+                    // extID? skip E-PIX
                     if ($module->getProjectSetting("extpsn") === true && str_starts_with($mpiID,$module->getProjectSetting("extpsn_prefix"))) {
                         $oPseudoService->setError("Pseudonym / REDCap Datensatz wurde gelöscht!");
-                    } else {
+                    } elseif ($oPseudoService->use_epix === true) {
                         // delete person if not in other projects
                         $bOtherProjects = false;
                         $bPSNInProject = false;
@@ -913,15 +935,7 @@ if (PseudoService::isAllowed('search')
           <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
           <?php } ?>
         </li>
-<?php   } ?>
-<!--TODO: optional navigation element logic for Pat-ID used together with other items in the future, e.g. import or export
-<?php   if ($module->getProjectSetting("sap_integrate") === false && $module->getProjectSetting("epix_integrate") === false) { ?>
-        <li class="nav-item">
-        <a class="nav-link<?php if ($sMode == 'psn_erzeugen') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=psn_erzeugen">Erzeugen</a>
-        </li>
-<?php   } ?>
- -->
-<?php   if (PseudoService::isAllowed('edit') && $module->getProjectSetting("epix_integrate") === true) { ?>
+<?php   if (PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
         </li>
@@ -942,31 +956,40 @@ if (PseudoService::isAllowed('search')
     // ================================================================================================
     // display errors
     // ================================================================================================
-    if (strlen($oPseudoService->getError()) > 0 || strlen($oSAPPatientSearch->getError()) > 0 || strlen($_SESSION[$oPseudoService->session]['msg']) > 0) {
-        print ('<div class="red" style="max-width:700px;">');
-        if (strlen($oPseudoService->getError()) > 0) {
-            print ($oPseudoService->getError().'<br />');
-        }
-        if (strlen($oSAPPatientSearch->getError()) > 0) {
-            print ($oSAPPatientSearch->getError().'<br />');
-        }
-        print($_SESSION[$oPseudoService->session]['msg']);    
-        print ('</div><br />');
+    $sErrorTmp = '';
+    if (strlen($oPseudoService->getError()) > 0) {
+        $sErrorTmp .= $oPseudoService->getError().'<br />';
+    }
+    if ($oPseudoService->use_sap === true && strlen($oSAPPatientSearch->getError()) > 0) {
+        $sErrorTmp .= $oSAPPatientSearch->getError().'<br />';
+    
+    }
+    if (strlen($_SESSION[$oPseudoService->session]['msg']) > 0) {
+        $sErrorTmp .= $_SESSION[$oPseudoService->session]['msg'];
         unset($_SESSION[$oPseudoService->session]['msg']);
+    }
+    
+    if ($sErrorTmp) {
+        print ('<div class="red" style="max-width:700px;">'.$sErrorTmp.'</div><br />');
     }
     
     // ================================================================================================
     // display search form
     // ================================================================================================
     if ($sMode == 'search') { ?>
-          <h5>Probanden suchen</h5>
+    <?php if ($oPseudoService->use_epix === true) { ?>
+          <h5>Personen suchen</h5>
+    <?php } ?>
           <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
+    <?php if ($oPseudoService->use_sap === true) { ?>
           <div class="form-group row">
             <label for="ish_id" class="col-sm-2 col-form-label">SAP-ID</label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="ish_id" name="ish_id" value="<?php echo $_POST['ish_id']; ?>">
             </div>
           </div>
+    <?php } ?>
+    <?php if ($oPseudoService->use_epix === true) { ?>
           <div class="form-group row">
             <label for="firstName" class="col-sm-2 col-form-label">Vorname</label>
             <div class="col-sm-5">
@@ -985,13 +1008,14 @@ if (PseudoService::isAllowed('search')
               <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $_POST['birthDate']; ?>">
             </div>
           </div>
+    <?php } ?>
     <?php if ($module->getProjectSetting("extpsn") === true) { ?>
            <!-- externes Pseudonym -->
-          <h5>Pseudonyme suchen</h5>
+          <h5><?php print ($module->getProjectSetting("extpsn_label")); ?> suchen</h5>
           <div class="form-group row">
-            <label for="extPS" class="col-sm-2 col-form-label">externes Pseudonym</label>
+            <label for="extID" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?></label>
             <div class="col-sm-5">
-              <input type="text" class="form-control" id="extPS" name="extPS" value="<?php echo $_POST['extPS']; ?>">
+              <input type="text" class="form-control" id="extID" name="extID" value="<?php echo $_POST['extID']; ?>">
             </div>
           </div>
     <?php } ?>      
@@ -1078,8 +1102,11 @@ if ($sMode == 'psn_erzeugen' &&
 // display create form
 // ================================================================================================
 $aPost = $_POST;
+if (isset($_GET['extID'])) {
+    $aPost['extID'] = $_GET['extID'];
+} 
 // load data for edit form
-if ($sMode == 'create' && $_GET['edit'] == '1' && PseudoService::isAllowed('edit')) {
+if ($sMode == 'create' && $_GET['edit'] == '1' && PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) {
     if (strlen($iMPI_ID_ENC) > 0 && count($aPost) == 0) {
         $mpiId = decrypt($iMPI_ID_ENC,$_SESSION[$oPseudoService->session]['enckey']);
         if ($mpiId) {
@@ -1148,169 +1175,218 @@ if ($sMode == 'create' && $_GET['edit'] == '1' && PseudoService::isAllowed('edit
 }
 
 if ($sMode == 'create' 
-    && ($module->getProjectSetting("extern") === true || strlen($iISH_ID_ENC) > 0) 
     && (PseudoService::isAllowed('create') || ($_GET['edit'] == '1' && PseudoService::isAllowed('edit')))) { 
 
-    $aIsoCodes = PseudoService::csv_to_array(dirname(__FILE__).'/german-iso-3166.csv');
-    if (!isset($aPost['country'])) {
-        $aPost['country'] = 'DE';
-    }
+    if ($oPseudoService->manual_edit === true || strlen($iISH_ID_ENC) > 0) { 
 
-    if ($_GET['edit'] == '1') {
-        print("<h5>Probanden bearbeiten</h5>");
-    } else {
-        print("<h5>Probanden anlegen</h5>");
-    }
-    ?>
-      <form method="post" action="<?php echo ($module->moduleIndex); ?>">
-<?php 
-    $sDis = '';
-    if (strlen($iISH_ID_ENC) > 0) {
-        $sDis = ' disabled="disabled"';
-        $ishId_dc = decrypt($iISH_ID_ENC,$_SESSION[$oPseudoService->session]['enckey']);
-        if ($ishId_dc) {
-            print('
-            <div class="form-group row">
-              <label for="ish_id" class="col-sm-2 col-form-label">SAP-ID</label>
-              <div class="col-sm-5">
-                <input type="text" class="form-control" id="ish_id" name="ish_id" value="'.$ishId_dc.'" '.$sDis.'>
-              </div>
-            </div>');
+        $aIsoCodes = PseudoService::csv_to_array(dirname(__FILE__).'/german-iso-3166.csv');
+        if (!isset($aPost['country'])) {
+            $aPost['country'] = 'DE';
         }
-    }
-    if (strlen($iISH_ID_ENC) == 0 || strlen($iMPI_ID_ENC) > 0) {
-     ?>
-      <div class="form-group row">
-        <label for="gender" class="col-sm-2 col-form-label">Geschlecht*</label>
-        <div class="radio">
-          <?php foreach($oPseudoService->aGender as $sKey => $sVal) {
-              $sSel = '';
-              if ($sKey == $aPost['gender']) {
-                $sSel = ' checked="checked"';
+
+        if ($_GET['edit'] == '1') {
+            print("<h5>Person bearbeiten</h5>");
+        } else {
+            print("<h5>Person anlegen</h5>");
+        }
+        ?>
+          <form method="post" action="<?php echo ($module->moduleIndex); ?>">
+    <?php 
+        $sDis = '';
+        if (strlen($iISH_ID_ENC) > 0 && $oPseudoService->use_sap === true) {
+            $sDis = ' disabled="disabled"';
+            $ishId_dc = decrypt($iISH_ID_ENC,$_SESSION[$oPseudoService->session]['enckey']);
+            if ($ishId_dc) {
+                print('
+                <div class="form-group row">
+                  <label for="ish_id" class="col-sm-2 col-form-label">SAP-ID</label>
+                  <div class="col-sm-5">
+                    <input type="text" class="form-control" id="ish_id" name="ish_id" value="'.$ishId_dc.'" '.$sDis.'>
+                  </div>
+                </div>');
+            }
+        }
+        if ((strlen($iISH_ID_ENC) == 0 || strlen($iMPI_ID_ENC) > 0) && $oPseudoService->manual_edit === true) {
+         ?>
+          <div class="form-group row">
+            <label for="gender" class="col-sm-2 col-form-label">Geschlecht*</label>
+            <div class="radio">
+              <?php foreach($oPseudoService->aGender as $sKey => $sVal) {
+                  $sSel = '';
+                  if ($sKey == $aPost['gender']) {
+                    $sSel = ' checked="checked"';
+                  }
+                  echo ('<label class="radio-inline"><input type="radio" name="gender" value="'.$sKey.'"'.$sSel.$sDis.'> '.$sVal.'</input>&nbsp;&nbsp;</label>'."\n");
               }
-              echo ('<label class="radio-inline"><input type="radio" name="gender" value="'.$sKey.'"'.$sSel.$sDis.'> '.$sVal.'</input>&nbsp;&nbsp;</label>'."\n");
-          }
-          ?>
-          
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="degree" class="col-sm-2 col-form-label">Titel</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="degree" name="degree" value="<?php echo $aPost['degree']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="firstName" class="col-sm-2 col-form-label">Vorname*</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $aPost['firstName']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="lastName" class="col-sm-2 col-form-label">Nachname*</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo $aPost['lastName']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="mothersMaidenName" class="col-sm-2 col-form-label">Geburtsname</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="mothersMaidenName" name="mothersMaidenName" value="<?php echo $aPost['mothersMaidenName']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="birthDate" class="col-sm-2 col-form-label">Geburtsdatum (DD.MM.YYYY)*</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $aPost['birthDate']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="street" class="col-sm-2 col-form-label">Straße</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="street" name="street" value="<?php echo $aPost['street']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="zipCode" class="col-sm-2 col-form-label">Postleitzahl</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="zipCode" name="zipCode" value="<?php echo $aPost['zipCode']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="city" class="col-sm-2 col-form-label">Wohnort</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="city" name="city" value="<?php echo $aPost['city']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="phone" class="col-sm-2 col-form-label">Telefon</label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $aPost['phone']; ?>"<?php echo ($sDis); ?>>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label for="country" class="col-sm-2 col-form-label">Land</label>
-        <div class="col-sm-5">
-        <select class="form-control" id="country" name="country"<?php echo ($sDis); ?>>
-              <option value=""></option>
-          <?php foreach($aIsoCodes as $aTmp) {
-              $sSel = '';
-              if ($aTmp['iso'] == $aPost['country']) {
-                $sSel = ' selected="selected"';
-              }
-              echo ('<option value="'.$aTmp['iso'].'"'.$sSel.'>'.$aTmp['label'].'</option>'."\n");
-          }
-          ?>
-          </select>
+              ?>
+              
+            </div>
           </div>
-      </div>
-<?php 
-}
-// add custom fields value1..10
-if (is_array($module->getProjectSetting("cust-vars-list"))) {
-    foreach($module->getProjectSetting("cust-vars-list") as $i => $foo) {
-        if (strlen($module->getProjectSetting("custom_field")[$i]) == 0) continue;
-        $sFieldTmp = 'value'.$module->getProjectSetting("custom_field")[$i];
-        $sLabelTmp = $module->getProjectSetting("custom_label")[$i];
-?>
-      <div class="form-group row">
-        <label for="<?php print ($sFieldTmp); ?>" class="col-sm-2 col-form-label"><?php print ($sLabelTmp); ?></label>
-        <div class="col-sm-5">
-          <input type="text" class="form-control" id="<?php print ($sFieldTmp); ?>" name="<?php print ($sFieldTmp); ?>" value="<?php echo $aPost[$sFieldTmp]; ?>">
-        </div>
-      </div>
-<?php 
+          <div class="form-group row">
+            <label for="degree" class="col-sm-2 col-form-label">Titel</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="degree" name="degree" value="<?php echo $aPost['degree']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="firstName" class="col-sm-2 col-form-label">Vorname*</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $aPost['firstName']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="lastName" class="col-sm-2 col-form-label">Nachname*</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo $aPost['lastName']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="mothersMaidenName" class="col-sm-2 col-form-label">Geburtsname</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="mothersMaidenName" name="mothersMaidenName" value="<?php echo $aPost['mothersMaidenName']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="birthDate" class="col-sm-2 col-form-label">Geburtsdatum (DD.MM.YYYY)*</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $aPost['birthDate']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="street" class="col-sm-2 col-form-label">Straße</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="street" name="street" value="<?php echo $aPost['street']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="zipCode" class="col-sm-2 col-form-label">Postleitzahl</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="zipCode" name="zipCode" value="<?php echo $aPost['zipCode']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="city" class="col-sm-2 col-form-label">Wohnort</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="city" name="city" value="<?php echo $aPost['city']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="phone" class="col-sm-2 col-form-label">Telefon</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $aPost['phone']; ?>"<?php echo ($sDis); ?>>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="country" class="col-sm-2 col-form-label">Land</label>
+            <div class="col-sm-5">
+            <select class="form-control" id="country" name="country"<?php echo ($sDis); ?>>
+                  <option value=""></option>
+              <?php foreach($aIsoCodes as $aTmp) {
+                  $sSel = '';
+                  if ($aTmp['iso'] == $aPost['country']) {
+                    $sSel = ' selected="selected"';
+                  }
+                  echo ('<option value="'.$aTmp['iso'].'"'.$sSel.'>'.$aTmp['label'].'</option>'."\n");
+              }
+              ?>
+              </select>
+              </div>
+          </div>
+    <?php 
     }
-} ?>
-      <div class="form-group row">
-        <div class="col-sm-offset-2 col-sm-5">
-          <button type="submit" class="btn btn-secondary" name="submit">Eintragen</button>
-        </div>
-      </div>
-      <input type="hidden" name="mode" value="create">
-      <input type="hidden" name="ish_id_enc" value="<?php print ($iISH_ID_ENC); ?>">
-      <input type="hidden" name="mpiid_enc" value="<?php print ($iMPI_ID_ENC); ?>">
-      </form>
-      <br />
+    // add custom fields value1..10
+    if (is_array($module->getProjectSetting("cust-vars-list"))) {
+        foreach($module->getProjectSetting("cust-vars-list") as $i => $foo) {
+            if (strlen($module->getProjectSetting("custom_field")[$i]) == 0) continue;
+            $sFieldTmp = 'value'.$module->getProjectSetting("custom_field")[$i];
+            $sLabelTmp = $module->getProjectSetting("custom_label")[$i];
+    ?>
+          <div class="form-group row">
+            <label for="<?php print ($sFieldTmp); ?>" class="col-sm-2 col-form-label"><?php print ($sLabelTmp); ?></label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="<?php print ($sFieldTmp); ?>" name="<?php print ($sFieldTmp); ?>" value="<?php echo $aPost[$sFieldTmp]; ?>">
+            </div>
+          </div>
+    <?php 
+        }
+    } ?>
+          <div class="form-group row">
+            <div class="col-sm-offset-2 col-sm-5">
+              <button type="submit" class="btn btn-secondary" name="submit">Eintragen</button>
+            </div>
+          </div>
+          <input type="hidden" name="mode" value="create">
+          <input type="hidden" name="ish_id_enc" value="<?php print ($iISH_ID_ENC); ?>">
+          <input type="hidden" name="mpiid_enc" value="<?php print ($iMPI_ID_ENC); ?>">
+          </form>
+          <br />
 <?php  
+    }
     
     if ($module->getProjectSetting("extpsn") === true && strlen($iISH_ID_ENC) == 0 && strlen($iMPI_ID_ENC) == 0) { ?>
        <!-- externes Pseudonym -->
-      <h5>externes Pseudonym anlegen</h5>
+      <h5><?php print ($module->getProjectSetting("extpsn_label")); ?> anlegen</h5>
       <form method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
-        <label for="extPS" class="col-sm-2 col-form-label">externes Pseudonym</label>
+        <label for="extID" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?>
+        <?php if ($module->getProjectSetting("validate_pat_id") === true) { 
+            echo ("<br>".$module->getProjectSetting("use_9_digits_pat_id") ? '(9-/10-stellig erlaubt)' : '(10-stellig)'); 
+        } ?></label>
         <div class="col-sm-5">
-          <input type="text" class="form-control" id="extPS" name="extPS" value="<?php echo $aPost['extPS']; ?>">
+          <input type="text" class="form-control" id="extID" name="extID" value="<?php echo $aPost['extID']; ?>">
+        <?php if ($module->getProjectSetting("validate_pat_id") === true) { ?> 
+            <span id="error-msg-leading-0" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.<br>Geben Sie die ID ab der 2. Stelle an<br>(damit wird die Eingabe insg. 9-stellig)</span>
+        <?php } ?>
         </div>
       </div>
       <div class="form-group row">
         <div class="col-sm-offset-2 col-sm-5">
-          <button type="submit" class="btn btn-secondary" name="submit">Eintragen</button>
+          <button type="submit" class="btn btn-secondary" name="submit" id="submitGen" <?php if ($module->getProjectSetting("validate_pat_id") === true) { echo "disabled"; } ?>>Eintragen</button>
         </div>
       </div>
       <input type="hidden" name="mode" value="create">
       </form>
+<?php if ($module->getProjectSetting("validate_pat_id") === true) { ?>
+        <script type="text/javascript">
+            // javascript to enable generation button only if regex matches 
+            document.addEventListener("DOMContentLoaded", function () {
+                let inputField = document.getElementById("extID");
+                let submitButton = document.getElementById("submitGen");
+                let errorMsg = document.getElementById("error-msg-leading-0");
+                
+                // ideal input: 10 digits ID (pat ID + check digit, no leading 0 accepted)
+                let regex = /^[1-9]{1}[0-9]{9}$/;
+                
+                // allow 9 digit input as well if activated in settings 
+                var use_9_digits = "<?php echo json_encode($module->getProjectSetting("use_9_digits_pat_id")); ?>";
+                if (use_9_digits == "true") {
+                    regex = /^[1-9]{1}[0-9]{8,9}$/;
+                }
+
+                // display error message on leading 0
+                inputField.addEventListener("input", function() {
+                    errorMsg.style.display = inputField.value.startsWith("0") ? "inline" : "none";
+
+                    if (inputField.value.length == 9 && use_9_digits == "true") {
+                        errorMsg.innerHTML = "Prüfen Sie bitte selbst die Gültigkeit der 9-stelligen ID.";
+                        errorMsg.style.color = "#e08f1d";
+                        errorMsg.style.display = "inline";
+                    } else {
+                        errorMsg.style.color = "red";
+                    }
+                });
+
+                // activate generation button on valid ID
+                inputField.addEventListener("keyup", function () {
+                    if (regex.test(inputField.value)) {
+                        submitButton.disabled = false;
+                    } else {
+                        submitButton.disabled = true;
+                    }
+                });
+            });
+        </script>
+<?php } ?>
 <?php }       
 } // end if mode=create
 
@@ -1419,8 +1495,8 @@ function confirmDelete(mpi) {
 }
 
 </script>
-<div id="confirmDelete" title="REDCap-Datensatz / Pseudonym / Patient löschen" style="display:none;">
-	<p>Wollen Sie wirklich den REDCap Datensatz, das Studienpseudonym und den Probanden löschen?</p>
+<div id="confirmDelete" title="REDCap-Datensatz / Pseudonym / Person löschen" style="display:none;">
+	<p>Wollen Sie wirklich den REDCap Datensatz, das Studienpseudonym und die Person löschen?</p>
 </div>
 
 <?php
@@ -1441,7 +1517,7 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
         <table class="table table-hover" style="max-width:700px;">
             <thead>
               <tr>
-                <th>Externes Pseudonym</th>
+                <th>'.$module->getProjectSetting("extpsn_label").'</th>
                 <th>Studienpseudonym</th>
                 <th></th>
                 '.$sDelTD.'
@@ -1455,9 +1531,11 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
               <tr>
                 <th>Name</th>
                 <th>Vorname</th>
-                <th>Geburtsdatum</th>
-                <th>SAP-ID</th>
-                <th></th>
+                <th>Geburtsdatum</th>');
+        if ($oPseudoService->use_sap === true) { 
+            print ('<th>SAP-ID</th>');
+        }
+        print ('<th></th>
                 <th></th>
                 '.$sDelTD.'
               </tr>
@@ -1487,7 +1565,7 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
             
             print ('
                   <tr>
-                    <td>'.$aData['extpsn'].'</td>
+                    <td>'.$aData['extid'].'</td>
                     <td>'.$aData['psn'].'</td>
                     <td><a href="'.$homeURL.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>                    
                     '.$sDelTD.'
@@ -1545,7 +1623,7 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
 // ================================================================================================
 // dubletten
 // ================================================================================================
-if ($sMode == 'dubletten' && PseudoService::isAllowed('edit')) {
+if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) {
      
       $aDubletten = $oPseudoService->getPossibleMatchesForDomain();
 
@@ -1693,15 +1771,19 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit')) {
 }
 
 // ================================================================================================
-// Neuen Probanden anlegen auch anzeigen, wenn keine Suchtreffer vorhanden
+// Neue Person anlegen auch anzeigen, wenn keine Suchtreffer vorhanden
 // ================================================================================================
 if (count($_POST) > 0 && isset($_POST['submit'])) {
   if ($sMode == 'search'
-      && ($module->getProjectSetting("extpsn") === true || $module->getProjectSetting("extern") === true)
+      && ($module->getProjectSetting("extpsn") === true || $oPseudoService->manual_edit === true)
       && PseudoService::isAllowed('create')) {
 
       echo ('<br />&nbsp;<br />');
-      print('<a href="'.$module->moduleIndex.'&mode=create">Neuen Probanden anlegen</a>');
+      if ($module->getProjectSetting("extpsn") === true && strlen($_POST['extID']) > 0) {
+          print('<a href="'.$module->moduleIndex.'&mode=create&extID='.$_POST['extID'].'">Neue Person mit '.$module->getProjectSetting("extpsn_label").' '.$_POST['extID'].' anlegen</a>');
+      } elseif ($oPseudoService->manual_edit === true) {
+          print('<a href="'.$module->moduleIndex.'&mode=create">Neue Person anlegen</a>');
+      }
 
   }
 }
