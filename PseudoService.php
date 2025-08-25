@@ -12,16 +12,35 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
     public function __construct() {
         parent::__construct();
+        global $user_rights;
+        
+        $this->AccessToken = array();
+        $this->SessionPrefix = '';
 
         // System settings
-
+        // Authentication Types
+        $this->aSystemAuthTypes = array();
+        for($i=1;$i<=3;$i++) {
+            if (strlen($this->getSystemSetting("auth_type".$i)) > 0) {
+                $this->aSystemAuthTypes[$i]['auth_type'] = $this->getSystemSetting("auth_type".$i);
+                $this->aSystemAuthTypes[$i]['basic_name'] = $this->getSystemSetting("basic_name".$i);
+                $this->aSystemAuthTypes[$i]['basic_secret'] = $this->getSystemSetting("basic_secret".$i);
+                $this->aSystemAuthTypes[$i]['authorization_url'] = $this->getSystemSetting("authorization_url".$i);
+                $this->aSystemAuthTypes[$i]['client_id'] = $this->getSystemSetting("client_id".$i);
+                $this->aSystemAuthTypes[$i]['secret'] = $this->getSystemSetting("secret".$i);
+            }
+        }
+        
         // gPAS
+        $this->gpas_auth_type = $this->getSystemSetting("gpas_auth_type");
         $this->gpas_url = $this->getSystemSetting("gpas_url");
         $this->gpas_scope = $this->getSystemSetting("gpas_scope");
         $this->gpas_domain_url = $this->getSystemSetting("gpas_domain_url");
         $this->gpas_domain_scope = $this->getSystemSetting("gpas_domain_scope");
 
         // E-PIX
+        $this->use_epix = $this->getSystemSetting("use_epix");
+        $this->epix_auth_type = $this->getSystemSetting("epix_auth_type");
         $this->epix_url = $this->getSystemSetting("epix_url");
         $this->epix_scope = $this->getSystemSetting("epix_scope");
         $this->epix_domain = $this->getSystemSetting("epix_domain");
@@ -30,6 +49,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->epix_id_domain = $this->getSystemSetting("epix_id_domain");
 
         // SAP
+        $this->use_sap = $this->getSystemSetting("use_sap");
+        $this->sap_auth_type = $this->getSystemSetting("sap_auth_type");
         $this->sap_url = $this->getSystemSetting("sap_url");
         $this->sap_scope = $this->getSystemSetting("sap_scope");
         $this->sap_filter_pid = $this->getSystemSetting("sap_filter_pid");
@@ -37,22 +58,66 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->sap_filter_firstname = $this->getSystemSetting("sap_filter_firstname");
         $this->sap_filter_dob_from = $this->getSystemSetting("sap_filter_dob_from");
         $this->sap_filter_dob_to = $this->getSystemSetting("sap_filter_dob_to");
+        
+        // Overwrite system settings
+        if ($this->getProjectId() && $this->getProjectSetting("project_custom_settings") === true) {
+            // Overwrite Auth Types
+            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+                $this->aProjectAuthTypes = array();
+                // Authentication Types
+                for($i=1;$i<=3;$i++) {
+                    if (strlen($this->getProjectSetting("project_auth_type".$i)) > 0) {
+                        $this->aProjectAuthTypes[$i]['auth_type'] = $this->getProjectSetting("project_auth_type".$i);
+                        $this->aProjectAuthTypes[$i]['basic_name'] = $this->getProjectSetting("project_basic_name".$i);
+                        $this->aProjectAuthTypes[$i]['basic_secret'] = $this->getProjectSetting("project_basic_secret".$i);
+                        $this->aProjectAuthTypes[$i]['authorization_url'] = $this->getProjectSetting("project_authorization_url".$i);
+                        $this->aProjectAuthTypes[$i]['client_id'] = $this->getProjectSetting("project_client_id".$i);
+                        $this->aProjectAuthTypes[$i]['secret'] = $this->getProjectSetting("project_secret".$i);
+                    }
+                }
 
+                // gPAS Auth
+                $this->gpas_auth_type = $this->getProjectSetting("project_gpas_auth_type");
+                $this->gpas_url = $this->getProjectSetting("project_gpas_url");
+                $this->gpas_scope = $this->getProjectSetting("project_gpas_scope");
+                $this->gpas_domain_url = $this->getProjectSetting("project_gpas_domain_url");
+                $this->gpas_domain_scope = $this->getProjectSetting("project_gpas_domain_scope");
+
+                // E-PIX Auth
+                $this->epix_auth_type = $this->getProjectSetting("project_epix_auth_type");
+                $this->epix_url = $this->getProjectSetting("project_epix_url");
+                $this->epix_scope = $this->getProjectSetting("project_epix_scope");
+                $this->epix_domain = $this->getProjectSetting("project_epix_domain");
+                $this->epix_safe_source = $this->getProjectSetting("project_epix_safe_source");
+                $this->epix_external_source = $this->getProjectSetting("project_epix_external_source");
+                $this->epix_id_domain = $this->getProjectSetting("project_epix_id_domain");
+            }
+            // Use E-PIX
+            $this->use_epix = $this->getProjectSetting("project_use_epix");
+            // Use SAP
+            $this->use_sap = $this->getProjectSetting("project_use_sap");
+        }
+        
+        // manual edit allowed?        
+        $this->manual_edit = false;
+
+        if ($this->use_sap === true) {
+            // SAP needs E-PIX
+            $this->use_epix = true;
+                            
+            if ($this->getProjectId() && $this->getProjectSetting("extern") === true) {
+                $this->manual_edit = true;
+            }
+        } elseif ($this->use_epix === true) {
+            $this->manual_edit = true;
+        }        
+        
         // module index URL
         $this->moduleIndex = $this->replaceHost($this->getUrl('index.php'));
 
         // callback URL
         $this->callbackUrl = $this->moduleIndex;
-
-        // API Authentication
-        $this->authorization_url = $this->getSystemSetting("authorization_url");
-        $this->client_id = $this->getSystemSetting("client_id");       // The client ID assigned to you by the provider
-        $this->client_secret = $this->getSystemSetting("secret");      // The client password assigned to you by the provider
-        $this->basic_name = $this->getSystemSetting("basic_name");
-        $this->basic_secret = $this->getSystemSetting("basic_secret");
-        $this->auth_type = $this->getSystemSetting('auth_type');    // The client authentication type, either "oauth" (="OAuth2")  or "basic" (="Basic Auth") auth
         
-
         // namespace for session variables
         $this->session = strtolower($this->getModuleName());
 
@@ -81,6 +146,23 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $this->maxcnt = intval($this->getProjectSetting("maxcnt"));
             }
             $this->gpas_domain = $this->getProjectSetting("gpas_domain");
+
+            $this->group_id = '';
+            if ($this->getProjectSetting("use_dags") === true) {
+                // Check if the user is in a data access group (DAG)
+                $this->group_id = $user_rights['group_id'];
+            }
+            /*
+            // If $group_id is blank, then user is not in a DAG
+            if ($group_id == '') {
+            	print "User $this_user is NOT assigned to a data access group.";
+            } else {
+            	// User is in a DAG, so get the DAG's name to display
+            	print "User $this_user is assigned to the DAG named \"" . REDCap::getGroupNames(false, $group_id)
+            		. "\", whose unique group name is \"" . REDCap::getGroupNames(true, $group_id) . "\".";
+            }
+            */
+
         }
 
         $this->error = '';
@@ -100,94 +182,106 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             exit('Zugriff verweigert!');
        }
 
-        // call default oauth logic
-        if ($this->auth_type == 'oauth') {
-           if (strlen($this->authorization_url) == 0) {
-                exit('Authorisierungs URL fehlt!');
-            }
-            $host = rtrim($this->authorization_url, '/');
+       for($i=1;$i<=3;$i++) {
+            $aAuth = $this->getAuth($i);
+            if (!$aAuth) continue;
 
-            $provider = new \League\OAuth2\Client\Provider\GenericProvider([
-                'clientId'                => $this->client_id,    // The client ID assigned to you by the provider
-                'clientSecret'            => $this->client_secret,    // The client password assigned to you by the provider
-                'redirectUri'             => $this->callbackUrl,
-                'urlAuthorize'            => $host.'/authorize',
-                'urlAccessToken'          => $host.'/token',
-                'urlResourceOwnerDetails' => $host,
-                'proxy'                   => $this->proxy,
-                'verify'                  => false,
-                'scopes' => $this->sap_scope.' '.$this->gpas_scope.' '.$this->gpas_domain_scope.' '.$this->epix_scope
-            ]);
+            if ($aAuth['auth_type'] == 'oidc_flow') {
 
-            // Token expired? -> Refresh Token
-            if (isset($_SESSION[$this->session]['oauth2_expiredin']) && time() >= $_SESSION[$this->session]['oauth2_expiredin']) {
+                if (strlen($aAuth['authorization_url']) == 0) {
+                    exit('Authorisierungs URL fehlt!');
+                }
+                $host = rtrim($aAuth['authorization_url'], '/');
 
-                try {
-                    $accessToken = $provider->getAccessToken('refresh_token', [
-                        'refresh_token' => $_SESSION[$this->session]['oauth2_refreshtoken']
-                    ]);
-                    $_SESSION[$this->session]['oauth2_accesstoken'] = $accessToken->getToken();
-                    $_SESSION[$this->session]['oauth2_expiredin'] = $accessToken->getExpires();
-                    $_SESSION[$this->session]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+                $aScopes = array();
+                if ($this->gpas_auth_type == $i) {
+                    $aScopes[] = $this->gpas_scope;
+                    $aScopes[] = $this->gpas_domain_scope;
+                }
+                if ($this->use_epix === true && $this->epix_auth_type == $i) {
+                    $aScopes[] = $this->epix_scope;
+                }
+                if ($this->use_sap === true && $this->sap_auth_type == $i) {
+                    $aScopes[] = $this->sap_scope;
+                }
+                $sScope = implode(" ",$aScopes);
 
-                } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-                    // Failed to get the access token or user details.
-                    exit($e->getMessage());
+                $aOpt = array(
+                    'clientId'                => $aAuth['client_id'],    // The client ID assigned to you by the provider
+                    'clientSecret'            => $aAuth['secret'],    // The client password assigned to you by the provider
+                    'redirectUri'             => $this->callbackUrl,
+                    'urlAuthorize'            => $host.'/authorize',
+                    'urlAccessToken'          => $host.'/token',
+                    'urlResourceOwnerDetails' => $host,
+                    'proxy'                   => $this->proxy,
+                    'verify'                  => false,
+                    'scopes' => $sScope
+                );
+                $provider = new \League\OAuth2\Client\Provider\GenericProvider($aOpt);
+                
+                // Token expired? -> Refresh Token
+                if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) && time() >= $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) {
+
+                    try {
+                        $accessToken = $provider->getAccessToken('refresh_token', [
+                            'refresh_token' => $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken']
+                        ]);
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $accessToken->getToken();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin'] = $accessToken->getExpires();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+
+                    } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+                        // Failed to get the access token or user details.
+                         exit($e->getMessage());
+                    }
+
+                }
+                
+                // Already logged in: Get Token from session
+                if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'])) {
+                    $this->AccessToken[$i] = $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'];
+                    return (true);
                 }
 
-            }
+                // If we don't have an authorization code then get one
+                if (!isset($_GET['code'])) {
+                
+                    // Fetch the authorization URL from the provider; this returns the
+                    // urlAuthorize option and generates and applies any necessary parameters
+                    // (e.g. state).
+                    $authorizationUrl = $provider->getAuthorizationUrl();
 
-            // Already logged in: Get Token from session
-            if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
-                $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
-                return (true);
-            }
+                    // Get the state generated for you and store it to the session.
+                    $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'] = $provider->getState();
 
-            // If we don't have an authorization code then get one
-            if (!isset($_GET['code'])) {
+                    // Redirect the user to the authorization URL.
+                    redirect($authorizationUrl);
+                
+                // Check given state against previously stored one to mitigate CSRF attack
+                } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'])) {
+                
+                    if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'])) {
+                        unset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state']);
+                    }
+                    exit('Invalid state');
+                
+                } else {
+                
+                    try {
+                        // Try to get an access token using the authorization code grant.
+                        $accessToken = $provider->getAccessToken('authorization_code', [
+                            'code' => $_GET['code']
+                        ]);
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $accessToken->getToken();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin'] = $accessToken->getExpires();
+                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
 
-                // Fetch the authorization URL from the provider; this returns the
-                // urlAuthorize option and generates and applies any necessary parameters
-                // (e.g. state).
-                $authorizationUrl = $provider->getAuthorizationUrl();
-
-                // Get the state generated for you and store it to the session.
-                $_SESSION[$this->session]['oauth2_state'] = $provider->getState();
-
-                // Redirect the user to the authorization URL.
-                redirect($authorizationUrl);
-
-            // Check given state against previously stored one to mitigate CSRF attack
-            } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session]['oauth2_state'])) {
-
-                if (isset($_SESSION[$this->session]['oauth2_state'])) {
-                    unset($_SESSION[$this->session]['oauth2_state']);
-                }
-                exit('Invalid state');
-
-            } else {
-
-                try {
-                    // Try to get an access token using the authorization code grant.
-                    $accessToken = $provider->getAccessToken('authorization_code', [
-                        'code' => $_GET['code']
-                    ]);
-                    $_SESSION[$this->session]['oauth2_accesstoken'] = $accessToken->getToken();
-                    $_SESSION[$this->session]['oauth2_expiredin'] = $accessToken->getExpires();
-                    $_SESSION[$this->session]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
-
-                } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-                    // Failed to get the access token or user details.
-                    exit($e->getMessage());
-                }
-            }
-
-            // redirect to data entry page after login
-            // ! moved from index.php because of wrong redirect in basic auth logic
-            if (isset($_SESSION[$oSAPPatientSearch->session]['redirect'])) {
-                $redirect = $_SESSION[$oSAPPatientSearch->session]['redirect'];
-                unset($_SESSION[$oSAPPatientSearch->session]['redirect']);
-                redirect(APP_PATH_WEBROOT."DataEntry/index.php?".$redirect);
+                    } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+                        // Failed to get the access token or user details.
+                        exit($e->getMessage());
+                    }
+                
+                }    
             }
         }
     }
@@ -222,20 +316,27 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if ($psService == 'sap') {
             $sXML = str_replace('<SOAP-ENV:Envelope>','<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:sap-com:document:sap:rfc:functions">',$sXML);
             $url = $this->sap_url;
+            $iAuthType = $this->sap_auth_type;
         }
         if ($psService == 'epix') {
             $sXML = str_replace('<SOAP-ENV:Envelope>','<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.epix.ttp.icmvc.emau.org/">',$sXML);
             $url = $this->epix_url;
+            $iAuthType = $this->epix_auth_type;
         }
         if ($psService == 'gpas') {
             $sXML = str_replace('<SOAP-ENV:Envelope>','<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://psn.ttp.ganimed.icmvc.emau.org/">',$sXML);
             $url = $this->gpas_url;
+            $iAuthType = $this->gpas_auth_type;
         }
         if ($psService == 'gpas_domain') {
             $sXML = str_replace('<SOAP-ENV:Envelope>','<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://psn.ttp.ganimed.icmvc.emau.org/">',$sXML);
             $url = $this->gpas_domain_url;
+            $iAuthType = $this->gpas_auth_type;
         }
         if (strlen($url) == 0) return (false);
+
+        $aAuth = $this->getAuth($iAuthType);
+        if (!$aAuth) return (false); 
 
         // set core curl options
         $curl_options = array(
@@ -247,29 +348,26 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             CURLOPT_PROXYUSERPWD => $this->curl_proxy_auth,
         );
         
-        if ($this->auth_type == 'oauth') {
+        if ($aAuth['auth_type'] == 'oidc_flow' || $aAuth['auth_type'] == 'oidc_client') {
             // get access token from session
-            if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
-                $this->AccessToken = $_SESSION[$this->session]['oauth2_accesstoken'];
+            if (isset($_SESSION[$this->session][$this->SessionPrefix][$iAuthType]['oauth2_accesstoken'])) {
+                $this->AccessToken[$iAuthType] = $_SESSION[$this->session][$this->SessionPrefix][$iAuthType]['oauth2_accesstoken'];
             } else {
                 return (false);
             }
 
-            $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken);
+            $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Bearer " . $this->AccessToken[$iAuthType]);
 
-        } elseif ($this->auth_type == 'basic') {
-            $user_pw = $this->basic_name . ":" . $this->basic_secret;
+        } elseif ($aAuth['auth_type'] == 'basic') {
+            $user_pw = $aAuth['basic_name'] . ":" . $aAuth['basic_secret'];
             $curl_options[CURLOPT_HTTPHEADER] = array("content-type: text/xml; charset=utf-8","Authorization:Basic " . base64_encode($user_pw));
         }
         // debug
         //print('<pre>'.htmlspecialchars($sXML).'</pre>');
 
-
         // curl call
         $curl = curl_init();
         curl_setopt_array($curl, $curl_options);
-
-
         $response = curl_exec($curl);
         $curl_info = curl_getinfo($curl);
         $err = curl_error($curl);
@@ -280,8 +378,11 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             throw new \Exception(strtoupper($psService).': Anmeldung fehlgeschlagen!');
         }
         if ($curl_info['http_code'] == '403') {
-            throw new \Exception(strtoupper($psService).': keine Berechtigung!');
-        }
+          throw new \Exception(strtoupper($psService).': keine Berechtigung!');
+        } 
+        if ($curl_info['http_code'] == '502') {
+          throw new \Exception(strtoupper($psService).': Dienst nicht verfügbar!');
+        } 
 
         // curl error
         if ($err) {
@@ -300,6 +401,28 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         return($arrayResult);
     }
 
+    /**
+    * get Authentication settings
+    *
+    * @author  Christian Erhardt
+    * @param string $i Authentication Type
+    * @access  private
+    * @return mixed array/false
+    */
+    private function getAuth($i) {
+        if ($this->getProjectId() && $this->getProjectSetting("project_custom_settings") === true) {
+            // Overwrite Auth Types
+            if ($this->getProjectSetting("project_auth_overwrite") === true) {
+                $this->SessionPrefix = $this->getProjectId();
+                if (!isset($this->aProjectAuthTypes[$i])) return false;
+                return ($this->aProjectAuthTypes[$i]);
+            }
+        }    
+        $this->SessionPrefix = '';
+        if (!isset($this->aSystemAuthTypes[$i])) return false;
+        return ($this->aSystemAuthTypes[$i]);
+    }
+    
     /**
     * check access
     *
@@ -391,20 +514,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $this->error = $sError;
     }
 
-    /**
-    * get login state of current session (TEIS)
-    *
-    * @author  Christian Erhardt
-    * @access  public
-    * @return boolean is user logged in?
-    */
-    public function getlogin() {
-        if (isset($_SESSION[$this->session]['oauth2_accesstoken'])) {
-            return (true);
-        }
-        return (false);
-    }
-
+   
     /**
     * deactivate namespaces in soap xml
     *

@@ -13,7 +13,7 @@ class CheckDigit extends PseudoService {
      * @author Egidia Cenko
      * @param string $known_id patient ID
      * @access public
-     * @return string known_id / -1
+     * @return string known_id || -1
      */
     public static function validateID($known_id){
        	// calculate check digit for Pat-ID
