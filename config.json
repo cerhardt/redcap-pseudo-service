@@ -17,8 +17,8 @@
 	"permissions": [
         "hook_data_entry_form_top"
 	],
-	
-	"enable-every-page-hooks-on-system-pages":false,	
+
+	"enable-every-page-hooks-on-system-pages":false,
 
 	"links": {
         "project": [
@@ -197,8 +197,7 @@
                     }
                 ]
             }
-        },    
-        
+        },            
         {
             "key": "project_auth_type2",
             "name": "Login Authentication Type 2",
@@ -579,8 +578,7 @@
                     }
                 ]
             }
-        },
-        
+        },    
         {
             "key": "project_gpas_scope",
             "name": "gPAS OIDC Scope",
@@ -638,7 +636,6 @@
                 ]
             }
         },
-
         {
              "key": "project_epix_title",
              "name": "<p style='font-size:large'>E-PIX Settings</p>",
@@ -826,41 +823,37 @@
                 "value": "true"
             }
         },
-
-
-          {
-              "key": "save_sap_id",
-              "name": "save SAP-ID in REDCap",
-              "super-users-only": true,
-              "type": "checkbox",
-                "branchingLogic": {
-                    "field": "project_custom_settings",
-                    "value": "true"
-                }
-          },
-          {
-              "key": "sap_id_field",
-              "name": "field to store SAP-ID <br><small style='color:#da0000;'>field needs to be marked as identifying</small></b style='color:black'> ",
-              "type": "field-list",
-              "autocomplete": true,
-              "super-users-only": true,
-                "branchingLogic": {
-                    "field": "project_custom_settings",
-                    "value": "true"
-                }
-          },
-          {
-              "key": "sap_id_event",
-              "name": "event to store SAP-ID",
-              "type": "event-list",
-              "super-users-only": true,
-                "branchingLogic": {
-                    "field": "project_custom_settings",
-                    "value": "true"
-                }
-          },
-
-        
+        {
+            "key": "save_sap_id",
+            "name": "save SAP-ID in REDCap",
+            "super-users-only": true,
+            "type": "checkbox",
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
+        {
+            "key": "sap_id_field",
+            "name": "field to store SAP-ID <br><small style='color:#da0000;'>field needs to be marked as identifying</small></b style='color:black'> ",
+            "type": "field-list",
+            "autocomplete": true,
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
+        {
+            "key": "sap_id_event",
+            "name": "event to store SAP-ID",
+            "type": "event-list",
+            "super-users-only": true,
+            "branchingLogic": {
+                "field": "project_custom_settings",
+                "value": "true"
+            }
+        },
         {
             "key": "extern",
             "name": "use additional external probands",
@@ -871,7 +864,6 @@
                     "value": "true"
                 }
         },
-
         {
              "key": "cust_vars_title",
              "name": "<p style='font-size:large'>Custom Fields Settings</p>",
@@ -962,8 +954,6 @@
               }
            ]
           },
-
-
           {
                "key": "dag_title",
                "name": "<p style='font-size:large'>DAG Setting</p>",
@@ -975,7 +965,6 @@
               "super-users-only": true,
               "type": "checkbox"
           },
-
           {
                "key": "search_title",
                "name": "<p style='font-size:large'>Search Setting</p>",
@@ -987,9 +976,7 @@
               "required": false,
               "type": "text"
           }
-
 	],
-
 	"system-settings": [
         {
              "key": "auth_title",
@@ -1110,7 +1097,6 @@
                 ]
             }
         },    
-        
         {
             "key": "auth_type2",
             "name": "Login Authentication Type 2",
@@ -1230,7 +1216,6 @@
                 ]
             }
         },    
-        
         {
             "key": "auth_type3",
             "name": "Login Authentication Type 3",
@@ -1349,7 +1334,6 @@
                 ]
             }
         },    
-        
         {
              "key": "gpas_title",
              "name": "<p style='font-size:large'>gPAS Settings</p>",
@@ -1359,6 +1343,7 @@
             "key": "gpas_url",
             "name": "gPAS API URL",
             "required": true,
+            "allow-project-overrides": true,
             "type": "text"
         },
         {
@@ -1381,7 +1366,6 @@
               }
             ]
         },
-        
         {
             "key": "gpas_scope",
             "name": "gPAS OIDC Scope",
@@ -1392,6 +1376,7 @@
             "key": "gpas_domain_url",
             "name": "gPAS Domain API URL",
             "required": true,
+            "allow-project-overrides": true,
             "type": "text"
         },
         {
@@ -1400,7 +1385,6 @@
             "required": false,
             "type": "text"
         },
-
         {
              "key": "epix_title",
              "name": "<p style='font-size:large'>E-PIX Settings</p>",
@@ -1673,10 +1657,8 @@
             "type": "checkbox"
         }
 	],
-
 	"crons": [
 	],
-
 	"compatibility": {
 		"php-version-min": "",
 		"php-version-max": "",

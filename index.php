@@ -51,6 +51,7 @@ $sMode = $_GET['mode'];
 if (isset($_POST['mode'])) {
     $sMode = $_POST['mode'];
 }
+
 if (strlen($sMode) == 0) {
     $sMode = 'search';
 }
@@ -229,7 +230,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             unset($aNameSort);
             unset($aVornameSort);
         }
-  } // search
+  } // search    
 
   // ================================================================================================
   // create mode
@@ -250,17 +251,29 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                 }
             }
             
-          $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
-          if (!$mEpixResult) {
-              $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
+            //commented because: at this point, shouldn't it be clear that no corresponding pseudonym exists? (priorly searched and found no match)
+            //$mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
+            
+            if (!$mEpixResult) {
+                $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
 
-              // redcap log
-              Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sExtPS.": ".$sPSN, "extID: psn created");
-              // save pseudonym in REDCap study
-              $oPseudoService->createREDCap($sPSN, $sExtPS);
-          } else {
-              $oPseudoService->setError("Dieses Pseudonym existiert bereits!");
-          }
+                // redcap log
+                Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sExtPS.": ".$sPSN, "extID: psn created");
+                
+                if ($module->getProjectSetting("save_sap_id") == true) {
+                    // save pseudonym + sap id (10 digits, not 9 digits) from provided field in REDCap study
+                    if ($module->getProjectSetting("validate_pat_id") === true) {
+                        $oPseudoService->createREDCap($sPSN, $validatedID);
+                    } else {
+                        $oPseudoService->createREDCap($sPSN, $sExtPS);
+                    }
+                } else {
+                    // save pseudonym in REDCap study
+                    $oPseudoService->createREDCap($sPSN); 
+                }
+            } else {
+                $oPseudoService->setError("Dieses Pseudonym existiert bereits!");
+            }
       }
 
       // external probands: create PSN
@@ -880,9 +893,12 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 // ================================================================================================
 // display navigation
 // ================================================================================================
-if (PseudoService::isAllowed('search')) {
+if (PseudoService::isAllowed('search')
+    //$module->getSystemSetting('auth_type') == 'oauth' && 
+    ) {
 ?>
       <ul class="nav nav-pills">
+<?php   if ($module->getProjectSetting("sap_integrate") === true) { ?>
         <li class="nav-item">
           <?php if ($sMode == 'search') { ?>
           <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
@@ -895,19 +911,19 @@ if (PseudoService::isAllowed('search')) {
           <?php } ?>
           <?php if ($sMode != 'create' && $sMode != 'search') { ?>
           <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
-          <?php } ?>
+          <?php }} ?>
         </li>
 <?php   if (PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
         </li>
 <?php   } ?>
-<?php   if (PseudoService::isAllowed('export')) { ?>
+<?php   if (PseudoService::isAllowed('export') && $module->getProjectSetting("sap_integrate") === true && $module->getProjectSetting("epix_integrate") === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=export">Export</a>
         </li>
 <?php   } ?>
-<?php   if (PseudoService::isAllowed('import')) { ?>
+<?php   if (PseudoService::isAllowed('import') && $module->getProjectSetting("sap_integrate") === true && $module->getProjectSetting("epix_integrate") === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
         </li>
@@ -977,13 +993,14 @@ if (PseudoService::isAllowed('search')) {
           <div class="form-group row">
             <label for="extID" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?></label>
             <div class="col-sm-5">
-              <input type="text" class="form-control" id="extID" name="extID" value="<?php echo $_POST['extID']; ?>">
+                <!--apply input logic check for the classes-->
+                <input type="text" class="form-control inputTextField" id="extID" name="extID" value="<?php echo $_POST['extID']; ?>">
             </div>
           </div>
     <?php } ?>      
           <div class="form-group row">
             <div class="col-sm-offset-2 col-sm-5">
-              <button type="submit" class="btn btn-secondary" name="submit">Suchen</button>
+              <button type="submit" class="btn btn-secondary submit" name="submit">Suchen</button>
             </div>
           </div>
           <input type="hidden" name="mode" value="search">
@@ -991,7 +1008,7 @@ if (PseudoService::isAllowed('search')) {
       
     <?php
     } // end search mode 
-} // end isAllowed('search')
+}// end isAllowed('search')
 
 // ================================================================================================
 // display create form
@@ -1226,62 +1243,19 @@ if ($sMode == 'create'
         <label for="extID" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?>
         <?php if ($module->getProjectSetting("validate_pat_id") === true) { 
             echo ("<br>".$module->getProjectSetting("use_9_digits_pat_id") ? '(9-/10-stellig erlaubt)' : '(10-stellig)'); 
-        } ?></label>
+        } ?>
+        </label>
         <div class="col-sm-5">
-          <input type="text" class="form-control" id="extID" name="extID" value="<?php echo $aPost['extID']; ?>">
-        <?php if ($module->getProjectSetting("validate_pat_id") === true) { ?> 
-            <span id="error-msg-leading-0" style="color:red; display:none;">Pat-IDs dürfen nicht mit 0 beginnen.<br>Geben Sie die ID ab der 2. Stelle an<br>(damit wird die Eingabe insg. 9-stellig)</span>
-        <?php } ?>
+          <input type="text" class="form-control inputTextField" id="extID" name="extID" value="<?php echo $aPost['extID']; ?>">
         </div>
       </div>
       <div class="form-group row">
         <div class="col-sm-offset-2 col-sm-5">
-          <button type="submit" class="btn btn-secondary" name="submit" id="submitGen" <?php if ($module->getProjectSetting("validate_pat_id") === true) { echo "disabled"; } ?>>Eintragen</button>
+          <button type="submit" class="btn btn-secondary submit" name="submit" id="submitGen" <?php if ($module->getProjectSetting("validate_pat_id") === true) { echo "enabled"; } ?>>Eintragen</button>
         </div>
       </div>
       <input type="hidden" name="mode" value="create">
       </form>
-<?php if ($module->getProjectSetting("validate_pat_id") === true) { ?>
-        <script type="text/javascript">
-            // javascript to enable generation button only if regex matches 
-            document.addEventListener("DOMContentLoaded", function () {
-                let inputField = document.getElementById("extID");
-                let submitButton = document.getElementById("submitGen");
-                let errorMsg = document.getElementById("error-msg-leading-0");
-                
-                // ideal input: 10 digits ID (pat ID + check digit, no leading 0 accepted)
-                let regex = /^[1-9]{1}[0-9]{9}$/;
-                
-                // allow 9 digit input as well if activated in settings 
-                var use_9_digits = "<?php echo json_encode($module->getProjectSetting("use_9_digits_pat_id")); ?>";
-                if (use_9_digits == "true") {
-                    regex = /^[1-9]{1}[0-9]{8,9}$/;
-                }
-
-                // display error message on leading 0
-                inputField.addEventListener("input", function() {
-                    errorMsg.style.display = inputField.value.startsWith("0") ? "inline" : "none";
-
-                    if (inputField.value.length == 9 && use_9_digits == "true") {
-                        errorMsg.innerHTML = "Prüfen Sie bitte selbst die Gültigkeit der 9-stelligen ID.";
-                        errorMsg.style.color = "#e08f1d";
-                        errorMsg.style.display = "inline";
-                    } else {
-                        errorMsg.style.color = "red";
-                    }
-                });
-
-                // activate generation button on valid ID
-                inputField.addEventListener("keyup", function () {
-                    if (regex.test(inputField.value)) {
-                        submitButton.disabled = false;
-                    } else {
-                        submitButton.disabled = true;
-                    }
-                });
-            });
-        </script>
-<?php } ?>
 <?php }       
 } // end if mode=create
 
@@ -1309,7 +1283,7 @@ if ($sMode == 'export' && PseudoService::isAllowed('export')) { ?>
 // ================================================================================================
 // display import form
 // ================================================================================================
-if ($sMode == 'import' && PseudoService::isAllowed('import')) { ?>
+if ($sMode == 'import') { ?>
       <h5>Liste importieren</h5>
       <form style="max-width:700px;" enctype="multipart/form-data" method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
@@ -1329,6 +1303,61 @@ if ($sMode == 'import' && PseudoService::isAllowed('import')) { ?>
 <?php } ?>
 
 <script type="text/javascript">
+
+
+// logic for input check when validation of the pat id is activated
+// in this case it can be assumed that users only aim to input digits, ideally 
+<?php if ($module->getProjectSetting("validate_pat_id") === true) { ?>
+    // javascript to enable generation button only if regex matches 
+    document.addEventListener("DOMContentLoaded", function () {
+        let inputFields = document.querySelectorAll(".inputTextField");
+        let submitButtons = document.querySelectorAll(".submit");
+
+        // ideal input: 10 digits ID (pat ID + check digit, no leading 0 accepted)
+        let regex = /^[1-9]{1}[0-9]{9}$/;
+        
+        // allow 9 digit input as well if activated in settings 
+        var use_9_digits = "<?php echo json_encode($module->getProjectSetting("use_9_digits_pat_id")); ?>";
+        if (use_9_digits == "true") {
+            regex = /^[1-9]{1}[0-9]{8,9}$/;
+        }
+
+        // event listener per class element
+        inputFields.forEach(function(inputField, index) {
+            let submitButton = submitButtons[index];
+
+            // create error/warning message below input field
+            let errorMsg = document.createElement('span');
+            errorMsg.className = 'error-msg';
+            errorMsg.style.color = 'red';
+            errorMsg.style.display = 'none';
+            inputField.insertAdjacentElement('afterend', errorMsg);
+
+
+            // Fehlernachricht bei Eingabe
+            inputField.addEventListener("input", function() {
+                errorMsg.style.display = inputField.value.startsWith("0") ? "inline" : "none";
+
+                if (inputField.value.startsWith("0")) {
+                    errorMsg.innerHTML = "Pat-IDs dürfen nicht mit 0 beginnen. Geben Sie die ID ab der 2. Stelle an.<br>(damit wird die Eingabe insg. 9-stellig)";
+                    errorMsg.style.color = "red";
+                    errorMsg.style.display = "inline";
+                } else if (inputField.value.length == 9 && use_9_digits == "true") {
+                    errorMsg.innerHTML = "Prüfen Sie bitte selbst die Gültigkeit der 9-stelligen ID.";
+                    errorMsg.style.color = "#e08f1d";
+                    errorMsg.style.display = "inline";
+                } else {
+                    errorMsg.style.display = "none";
+                }
+            });
+            
+             // activate creation button on valid ID
+            inputField.addEventListener("keyup", function () {
+                submitButton.disabled = !regex.test(inputField.value);
+            });
+        });
+    });
+<?php } ?>
 
 $(function(){
     $('.table tr[data-href]').each(function(){
