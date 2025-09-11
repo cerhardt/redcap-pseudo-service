@@ -113,7 +113,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }        
         
         // module index URL
-        $this->moduleIndex = $this->replaceHost($this->getUrl('index.php'));        
+        $this->moduleIndex = $this->getUrl('index.php');        
 
         // callback URL
         $this->callbackUrl = $this->moduleIndex;
@@ -177,10 +177,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     * @return void
     */
     public function login() {
-        // verify allowed domain
-        if ($GLOBALS['_SERVER']['SERVER_NAME'] != $this->getSystemSetting("allowed_domain")) {
-            exit('Zugriff verweigert!');
-       }
 
        for($i=1;$i<=3;$i++) {
             $aAuth = $this->getAuth($i);
@@ -501,7 +497,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             return false;
         }
 
-        $link['url'] = $this->replaceHost($link['url']);
         return $link;
     }
 
@@ -586,24 +581,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             fclose($handle);
         }
         return $data;
-    }
-
-    /**
-    * replace host in URLs if "allowed_domain" differs from redcap_base_url in REDCap settings
-    *
-    * @author  Christian Erhardt
-    * @param string $sUrl
-    * @access  private
-    * @return string 
-    */
-    private function replaceHost($sUrl) {
-        if (strlen($this->getSystemSetting("allowed_domain")) > 0) {
-            if (strpos($sUrl, $this->getSystemSetting("allowed_domain")) === false) {
-                $host = parse_url($GLOBALS['redcap_base_url'], PHP_URL_HOST);
-                $sUrl = str_replace($host, $this->getSystemSetting("allowed_domain"),$sUrl);
-            }
-        }
-        return $sUrl;    
     }
 }
 
