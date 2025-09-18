@@ -251,8 +251,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                 }
             }
             
-            //commented because: at this point, shouldn't it be clear that no corresponding pseudonym exists? (priorly searched and found no match)
-            //$mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
+            $mEpixResult = $oPseudoService->getPseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
             
             if (!$mEpixResult) {
                 $sPSN = $oPseudoService->getOrCreatePseudonymFor($module->getProjectSetting("extpsn_prefix").$sExtPS);
@@ -893,9 +892,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 // ================================================================================================
 // display navigation
 // ================================================================================================
-if (PseudoService::isAllowed('search')
-    //$module->getSystemSetting('auth_type') == 'oauth' && 
-    ) {
+if (PseudoService::isAllowed('search')) {
 ?>
       <ul class="nav nav-pills">
 <?php   if ($module->getProjectSetting("sap_integrate") === true) { ?>
@@ -1283,7 +1280,7 @@ if ($sMode == 'export' && PseudoService::isAllowed('export')) { ?>
 // ================================================================================================
 // display import form
 // ================================================================================================
-if ($sMode == 'import') { ?>
+if ($sMode == 'import' && PseudoService::isAllowed('import')) { ?>
       <h5>Liste importieren</h5>
       <form style="max-width:700px;" enctype="multipart/form-data" method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">

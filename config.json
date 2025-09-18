@@ -1343,7 +1343,6 @@
             "key": "gpas_url",
             "name": "gPAS API URL",
             "required": true,
-            "allow-project-overrides": true,
             "type": "text"
         },
         {
@@ -1376,7 +1375,6 @@
             "key": "gpas_domain_url",
             "name": "gPAS Domain API URL",
             "required": true,
-            "allow-project-overrides": true,
             "type": "text"
         },
         {
