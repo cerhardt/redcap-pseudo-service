@@ -258,18 +258,14 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 
                 // redcap log
                 Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sExtPS.": ".$sPSN, "extID: psn created");
-                
-                if ($module->getProjectSetting("save_sap_id") == true) {
-                    // save pseudonym + sap id (10 digits, not 9 digits) from provided field in REDCap study
-                    if ($module->getProjectSetting("validate_pat_id") === true) {
-                        $oPseudoService->createREDCap($sPSN, $validatedID);
-                    } else {
-                        $oPseudoService->createREDCap($sPSN, $sExtPS);
-                    }
-                } else {
-                    // save pseudonym in REDCap study
-                    $oPseudoService->createREDCap($sPSN); 
+
+
+                // save pseudonym + sap id (10 digits, not 9 digits) from provided field in REDCap study
+                if ($module->getProjectSetting("validate_pat_id") === true) {
+                    $sExtPS = $validatedID;
                 }
+                // save pseudonym in REDCap study
+                $oPseudoService->createREDCap($sPSN, $sExtPS);
             } else {
                 $oPseudoService->setError("Dieses Pseudonym existiert bereits!");
             }
@@ -895,7 +891,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 if (PseudoService::isAllowed('search')) {
 ?>
       <ul class="nav nav-pills">
-<?php   if ($module->getProjectSetting("sap_integrate") === true) { ?>
         <li class="nav-item">
           <?php if ($sMode == 'search') { ?>
           <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
@@ -915,12 +910,12 @@ if (PseudoService::isAllowed('search')) {
           <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
         </li>
 <?php   } ?>
-<?php   if (PseudoService::isAllowed('export') && $module->getProjectSetting("sap_integrate") === true && $module->getProjectSetting("epix_integrate") === true) { ?>
+<?php   if (PseudoService::isAllowed('export')) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=export">Export</a>
         </li>
 <?php   } ?>
-<?php   if (PseudoService::isAllowed('import') && $module->getProjectSetting("sap_integrate") === true && $module->getProjectSetting("epix_integrate") === true) { ?>
+<?php   if (PseudoService::isAllowed('import')) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
         </li>
@@ -1004,8 +999,7 @@ if (PseudoService::isAllowed('search')) {
           </form>
       
     <?php
-    } // end search mode 
-}// end isAllowed('search')
+} // end search mode 
 
 // ================================================================================================
 // display create form
