@@ -3,6 +3,8 @@ namespace meDIC\PseudoService;
 use \XMLWriter as XMLWriter;
 use \REDCap as REDCap;
 use \RCView as RCView;
+use \Logging as Logging;
+
 
 include_once('SAPPatientSearch.php');
 include_once('EPIX_gPAS.php');
@@ -215,6 +217,12 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 );
                 $provider = new \League\OAuth2\Client\Provider\GenericProvider($aOpt);
                 
+                /*
+                if (isset($_SESSION['openid_connect_id_token'])) {
+                    $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $_SESSION['openid_connect_id_token'];
+                }
+                */
+
                 // Token expired? -> Refresh Token
                 if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) && time() >= $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) {
 
@@ -278,6 +286,67 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                     }
                 
                 }    
+            } elseif ($aAuth['auth_type'] == 'oidc_client') {
+                $leeway = 60;
+
+                if (empty($aAuth['authorization_url'])) {
+                    exit('authorization_url mssing!');
+                }
+                $host = rtrim($aAuth['authorization_url'], '/');
+
+                $scopes = [];
+                if ($this->gpas_auth_type == $i) {
+                    $scopes[] = $this->gpas_scope;
+                    $scopes[] = $this->gpas_domain_scope;
+                }
+                if ($this->use_epix === true && $this->epix_auth_type == $i) {
+                    $scopes[] = $this->epix_scope;
+                }
+                if ($this->use_sap === true && $this->sap_auth_type == $i) {
+                    $scopes[] = $this->sap_scope;
+                }
+                $scopes = array_values(array_filter($scopes, static fn($s) => is_string($s) && strlen(trim($s)) > 0));
+                $scopeString = implode(' ', $scopes);
+
+                $provider = new \League\OAuth2\Client\Provider\GenericProvider([
+                    'clientId'                => $aAuth['client_id'],
+                    'clientSecret'            => $aAuth['secret'],
+                    'redirectUri'             => null,
+                    'urlAuthorize'            => $host . '/auth',
+                    'urlAccessToken'          => $host . '/token',
+                    'urlResourceOwnerDetails' => $host,
+                    'proxy'                   => $this->proxy ?? null,
+                    'verify'                  => true,
+                ]);
+
+                $sess =& $_SESSION[$this->session][$this->SessionPrefix][$i];
+
+                if (!empty($sess['oauth2_accesstoken']) && !empty($sess['oauth2_expiredin'])) {
+                    if (time() < ((int)$sess['oauth2_expiredin'] - $leeway)) {
+                        $this->AccessToken[$i] = $sess['oauth2_accesstoken'];
+                        return true;
+                    }
+                }
+
+                try {
+                    $tokenOptions = [];
+                    if ($scopeString !== '') {
+                        $tokenOptions['scope'] = $scopeString;
+                    }
+
+                    // grant_type=client_credentials
+                    $accessToken = $provider->getAccessToken('client_credentials', $tokenOptions);
+
+                    $sess['oauth2_accesstoken'] = $accessToken->getToken();
+                    $sess['oauth2_expiredin']   = $accessToken->getExpires() ?: (time() + 300);
+                    unset($sess['oauth2_refreshtoken']);
+
+                    $this->AccessToken[$i] = $sess['oauth2_accesstoken'];
+                    return true;
+
+                } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+                    exit('Token-Error (Slot ' . $i . '): ' . $e->getMessage());
+                }
             }
         }
     }
@@ -331,6 +400,12 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         }
         if (strlen($url) == 0) return (false);
 
+        //Logging::logEvent('', "pseudo_service", "OTHER", '', "SOAP" . ": " . htmlspecialchars($sXML), "DEBUG SOAP CALL");
+        //Logging::logEvent('', "pseudo_service", "OTHER", '', "SOAP URL" . ": " . $url, "DEBUG SOAP CALL");
+
+
+
+
         $aAuth = $this->getAuth($iAuthType);
         if (!$aAuth) return (false); 
 
@@ -365,7 +440,11 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $curl = curl_init();
         curl_setopt_array($curl, $curl_options);
         $response = curl_exec($curl);
+        //Logging::logEvent('', "pseudo_service", "OTHER", '', "SOAP RESPONSE" . ": " . $response, "DEBUG SOAP CALL");
+        //print("<pre>".htmlspecialchars(var_export($curl_options, true))."</pre>");
+        //print("<pre>".htmlspecialchars(var_export($response, true))."</pre>");
         $curl_info = curl_getinfo($curl);
+        //print("<pre>".htmlspecialchars(var_export($curl_info, true))."</pre>");
         $err = curl_error($curl);
         curl_close($curl);
 
