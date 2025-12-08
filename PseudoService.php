@@ -184,115 +184,12 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             $aAuth = $this->getAuth($i);
             if (!$aAuth) continue;
 
-            if ($aAuth['auth_type'] == 'oidc_flow') {
-
-                if (strlen($aAuth['authorization_url']) == 0) {
-                    exit('Authorisierungs URL fehlt!');
-                }
-                $host = rtrim($aAuth['authorization_url'], '/');
-
-                $aScopes = array();
-                if ($this->gpas_auth_type == $i) {
-                    $aScopes[] = $this->gpas_scope;
-                    $aScopes[] = $this->gpas_domain_scope;
-                }
-                if ($this->use_epix === true && $this->epix_auth_type == $i) {
-                    $aScopes[] = $this->epix_scope;
-                }
-                if ($this->use_sap === true && $this->sap_auth_type == $i) {
-                    $aScopes[] = $this->sap_scope;
-                }
-                $sScope = implode(" ",$aScopes);
-
-                $aOpt = array(
-                    'clientId'                => $aAuth['client_id'],    // The client ID assigned to you by the provider
-                    'clientSecret'            => $aAuth['secret'],    // The client password assigned to you by the provider
-                    'redirectUri'             => $this->callbackUrl,
-                    'urlAuthorize'            => $host.'/authorize',
-                    'urlAccessToken'          => $host.'/token',
-                    'urlResourceOwnerDetails' => $host,
-                    'proxy'                   => $this->proxy,
-                    'verify'                  => false,
-                    'scopes' => $sScope
-                );
-                $provider = new \League\OAuth2\Client\Provider\GenericProvider($aOpt);
-                
-                /*
-                if (isset($_SESSION['openid_connect_id_token'])) {
-                    $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $_SESSION['openid_connect_id_token'];
-                }
-                */
-
-                // Token expired? -> Refresh Token
-                if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) && time() >= $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin']) {
-
-                    try {
-                        $accessToken = $provider->getAccessToken('refresh_token', [
-                            'refresh_token' => $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken']
-                        ]);
-                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $accessToken->getToken();
-                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin'] = $accessToken->getExpires();
-                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
-
-                    } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-                        // Failed to get the access token or user details.
-                         exit($e->getMessage());
-                    }
-
-                }
-                
-                // Already logged in: Get Token from session
-                if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'])) {
-                    $this->AccessToken[$i] = $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'];
-                    return (true);
-                }
-
-                // If we don't have an authorization code then get one
-                if (!isset($_GET['code'])) {
-                
-                    // Fetch the authorization URL from the provider; this returns the
-                    // urlAuthorize option and generates and applies any necessary parameters
-                    // (e.g. state).
-                    $authorizationUrl = $provider->getAuthorizationUrl();
-
-                    // Get the state generated for you and store it to the session.
-                    $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'] = $provider->getState();
-
-                    // Redirect the user to the authorization URL.
-                    redirect($authorizationUrl);
-                
-                // Check given state against previously stored one to mitigate CSRF attack
-                } elseif (empty($_GET['state']) || (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state']) && $_GET['state'] !== $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'])) {
-                
-                    if (isset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state'])) {
-                        unset($_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_state']);
-                    }
-                    exit('Invalid state');
-                
-                } else {
-                
-                    try {
-                        // Try to get an access token using the authorization code grant.
-                        $accessToken = $provider->getAccessToken('authorization_code', [
-                            'code' => $_GET['code']
-                        ]);
-                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_accesstoken'] = $accessToken->getToken();
-                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_expiredin'] = $accessToken->getExpires();
-                        $_SESSION[$this->session][$this->SessionPrefix][$i]['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
-
-                    } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-                        // Failed to get the access token or user details.
-                        exit($e->getMessage());
-                    }
-                
-                }    
-            } elseif ($aAuth['auth_type'] == 'oidc_client') {
-                $leeway = 60;
-
+            if ($aAuth['auth_type'] == 'oidc_flow' || $aAuth['auth_type'] == 'oidc_client') {
                 if (empty($aAuth['authorization_url'])) {
-                    exit('authorization_url mssing!');
+                    exit('authorization_url missing!');
                 }
-                $host = rtrim($aAuth['authorization_url'], '/');
+
+                $host = dirname($aAuth['authorization_url']);
 
                 $scopes = [];
                 if ($this->gpas_auth_type == $i) {
@@ -308,18 +205,106 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $scopes = array_values(array_filter($scopes, static fn($s) => is_string($s) && strlen(trim($s)) > 0));
                 $scopeString = implode(' ', $scopes);
 
+                $sess =& $_SESSION[$this->session][$this->SessionPrefix][$i];
+            }
+
+            if ($aAuth['auth_type'] == 'oidc_flow') {
+
+                $aOpt = array(
+                    'clientId'                => $aAuth['client_id'],    // The client ID assigned to you by the provider
+                    'clientSecret'            => $aAuth['secret'],    // The client password assigned to you by the provider
+                    'redirectUri'             => $this->callbackUrl,
+                    'urlAuthorize'            => $aAuth['authorization_url'],
+                    'urlAccessToken'          => $host.'/token',
+                    'urlResourceOwnerDetails' => $host,
+                    'proxy'                   => $this->proxy ?? null,
+                    'verify'                  => false,
+                    'scopes' => $scopeString
+                );
+                $provider = new \League\OAuth2\Client\Provider\GenericProvider($aOpt);
+
+                /*
+                if (isset($_SESSION['openid_connect_id_token'])) {
+                    $sess['oauth2_accesstoken'] = $_SESSION['openid_connect_id_token'];
+                }
+                */
+
+                // Token expired? -> Refresh Token
+                if (isset($sess['oauth2_expiredin']) && time() >= $sess['oauth2_expiredin']) {
+
+                    try {
+                        $accessToken = $provider->getAccessToken('refresh_token', [
+                            'refresh_token' => $sess['oauth2_refreshtoken']
+                        ]);
+                        $sess['oauth2_accesstoken'] = $accessToken->getToken();
+                        $sess['oauth2_expiredin'] = $accessToken->getExpires();
+                        $sess['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+
+                    } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+                        // Failed to get the access token or user details.
+                         exit($e->getMessage());
+                    }
+
+                }
+                
+                // Already logged in: Get Token from session
+                if (isset($sess['oauth2_accesstoken'])) {
+                    $this->AccessToken[$i] = $sess['oauth2_accesstoken'];
+                    return (true);
+                }
+
+                // If we don't have an authorization code then get one
+                if (!isset($_GET['code'])) {
+                
+                    // Fetch the authorization URL from the provider; this returns the
+                    // urlAuthorize option and generates and applies any necessary parameters
+                    // (e.g. state).
+                    $authorizationUrl = $provider->getAuthorizationUrl();
+
+                    // Get the state generated for you and store it to the session.
+                    $sess['oauth2_state'] = $provider->getState();
+
+                    // Redirect the user to the authorization URL.
+                    redirect($authorizationUrl);
+                
+                // Check given state against previously stored one to mitigate CSRF attack
+                } elseif (empty($_GET['state']) || (isset($sess['oauth2_state']) && $_GET['state'] !== $sess['oauth2_state'])) {
+                
+                    if (isset($sess['oauth2_state'])) {
+                        unset($sess['oauth2_state']);
+                    }
+                    exit('Invalid state');
+                
+                } else {
+                
+                    try {
+                        // Try to get an access token using the authorization code grant.
+                        $accessToken = $provider->getAccessToken('authorization_code', [
+                            'code' => $_GET['code']
+                        ]);
+                        $sess['oauth2_accesstoken'] = $accessToken->getToken();
+                        $sess['oauth2_expiredin'] = $accessToken->getExpires();
+                        $sess['oauth2_refreshtoken'] = $accessToken->getRefreshToken();
+
+                    } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+                        // Failed to get the access token or user details.
+                        exit($e->getMessage());
+                    }
+                
+                }    
+            } elseif ($aAuth['auth_type'] == 'oidc_client') {
+                $leeway = 60;
+
                 $provider = new \League\OAuth2\Client\Provider\GenericProvider([
                     'clientId'                => $aAuth['client_id'],
                     'clientSecret'            => $aAuth['secret'],
                     'redirectUri'             => null,
-                    'urlAuthorize'            => $host . '/auth',
+                    'urlAuthorize'            => $aAuth['authorization_url'],
                     'urlAccessToken'          => $host . '/token',
                     'urlResourceOwnerDetails' => $host,
                     'proxy'                   => $this->proxy ?? null,
                     'verify'                  => true,
                 ]);
-
-                $sess =& $_SESSION[$this->session][$this->SessionPrefix][$i];
 
                 if (!empty($sess['oauth2_accesstoken']) && !empty($sess['oauth2_expiredin'])) {
                     if (time() < ((int)$sess['oauth2_expiredin'] - $leeway)) {
