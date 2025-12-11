@@ -829,6 +829,11 @@ if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] !=
 // PSN set => redirect to REDCap data entry home
 // ================================================================================================
 if (strlen($sPSN) > 0 && strlen($oPseudoService->getError()) == 0) {
+    if (is_numeric($user_rights['group_id'])) {
+        $sPSN = $user_rights['group_id']."-".$oPseudoService->trimZero($sPSN);
+    } else {
+        $sPSN = $oPseudoService->trimZero($sPSN);
+    }
     $homeURL = APP_PATH_WEBROOT . "DataEntry/record_home.php?" . http_build_query([
               "pid" => $project_id,
               "id" => $sPSN
