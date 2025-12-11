@@ -149,8 +149,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             }
             $this->gpas_domain = $this->getProjectSetting("gpas_domain");
 
+            // use DAG in EPIX?
             $this->group_id = '';
-            if ($this->getProjectSetting("use_dags") === true) {
+            if ($this->getProjectSetting("use_dags") === true && isset($user_rights['group_id'])) {
                 // Check if the user is in a data access group (DAG)
                 $this->group_id = $user_rights['group_id'];
             }

@@ -50,10 +50,18 @@ class EPIX_gPAS extends PseudoService {
         if (!PseudoService::isAllowed('search')) {
             return;
         }
-        
+
         // get REDCap ID
         $sID = $_GET['id'];
-        
+
+        // remove DAG assignemt in record_id
+        $groups = REDCap::getGroupNames(false);
+        if (is_array($groups)) {
+            foreach($groups as $group_id => $foo) {
+                $sID = str_replace($group_id."-",'',$sID);
+            }
+        }
+
         // is idat stored in session?
         if (isset($_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID])) {
             printf ($this->idatwrap, $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID]);
@@ -160,13 +168,15 @@ class EPIX_gPAS extends PseudoService {
         if (strlen($paPerson['firstName']) > 0) {
             $requestArray['searchMask']['identity']['firstName'] = rtrim($paPerson['firstName'],"*");
         }
+        if ($this->getProjectSetting("use_dags") === true && strlen($this->group_id) > 0) {
+           $requestArray['searchMask']['identity']['value10'] = '|'.$this->getProjectId().':'.$this->group_id.'|';
+        }
         try {
             $result = $this->SoapCall("epix",$requestArray);
         } catch (\Exception $e) {
             $this->error = $e->getMessage();
             return (false);
         }
-
         // only 1 hit: convert array
         $aItems = array();
         if (isset($result['return']['mpiId'])) {
@@ -174,7 +184,6 @@ class EPIX_gPAS extends PseudoService {
         } else {
             $aItems = $result['return'];
         }
-        
         return ($aItems);
     }
 
@@ -187,6 +196,13 @@ class EPIX_gPAS extends PseudoService {
     * @return array return personal data (MPI, matchStatus)
     */
     public function requestMPI($paPerson) {
+
+        // use DAGs and no DAG assignment => return
+        if ($this->getProjectSetting("use_dags") === true && $this->group_id == '') {
+            $this->error = 'Please switch to DAG';
+            return (false);
+        }
+
         // if MPI is given, decrypt MPI and update person
         if (strlen($paPerson['mpiid_enc']) > 0) {
             $mpiId = decrypt($paPerson['mpiid_enc'],$_SESSION[$this->session]['enckey']);
@@ -233,9 +249,27 @@ class EPIX_gPAS extends PseudoService {
                 $this->error = $e->getMessage();
                 return (false);
             }
+            if (isset($result['return']['person'])) {
+                $mpiId = $result['return']['person']['mpiId']['value'];
+            } else {
+                $mpiId = $result['mpiId']['value'];
+            }
         }
 
-        // update E-PIX data 
+        // DAGs: add DAG assignment to person
+        if ($this->getProjectSetting("use_dags") === true) {
+            $sDAG = $this->getProjectId().':'.$this->group_id;
+            $sess = & $_SESSION[$this->session]['epix'][$this->epix_domain];
+            if (isset($sess[$mpiId])) {
+                $aTmp = explode("|", substr($sess[$mpiId], 1, -1));
+                array_push($aTmp, $sDAG);
+                $sDAG = implode("|", array_unique($aTmp));
+            }
+            $requestArray['identity']['value10'] = $sess[$mpiId] = '|'.$sDAG.'|';
+            $bMode ='update';
+        }
+
+        // update E-PIX data
         if ($bMode == 'update') {
             $requestArray['mpiId'] = $mpiId;
             $requestArray['force'] = true;
@@ -246,7 +280,7 @@ class EPIX_gPAS extends PseudoService {
                 return (false);
             }
         }
-        
+
         return ($result);
     }
 
@@ -806,10 +840,15 @@ class EPIX_gPAS extends PseudoService {
     * @return boolean
     */
     public function createREDCap($psPSN, $psextPSN = '', $pishId = '') {
-        global $Proj, $project_id;
+        global $Proj, $project_id, $user_rights;
         $sPK = REDCap::getRecordIdField();
         $aData = array();
-        $aData[$sPK] = $this->trimZero($psPSN);
+        // use DAG assignment for record_id
+        if (is_numeric($user_rights['group_id'])) {
+            $aData[$sPK] = $user_rights['group_id']."-".$this->trimZero($psPSN);
+        } else {
+            $aData[$sPK] = $this->trimZero($psPSN);
+        }
         if (REDCap::isLongitudinal()) {
             $form = $Proj->metadata[$sPK]['form_name'];
             foreach($Proj->eventsForms as $iEventID => $aForms) {
@@ -820,7 +859,7 @@ class EPIX_gPAS extends PseudoService {
             }
         }
         // save data
-        $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
+        $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $user_rights['group_id']);
         if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
             $this->setError("Der REDCap-Datensatz konnte nicht angelegt werden!");
             return (false);
@@ -828,14 +867,20 @@ class EPIX_gPAS extends PseudoService {
         // save external psn
         if (strlen($this->getProjectSetting("extpsn_field")) > 0 && strlen($psextPSN) > 0) {
             $aData = array();
-            $aData[$sPK] = $this->trimZero($psPSN);
+            // use DAG assignment for record_id
+            if (is_numeric($user_rights['group_id'])) {
+                $aData[$sPK] = $user_rights['group_id']."-".$this->trimZero($psPSN);
+            } else {
+                $aData[$sPK] = $this->trimZero($psPSN);
+            }
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("extpsn_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("extpsn_event")); 
             }
+
             $aData[$this->getProjectSetting("extpsn_field")] = $psextPSN;
             // save data
-            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
+            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $user_rights['group_id']);
             if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);
@@ -844,14 +889,19 @@ class EPIX_gPAS extends PseudoService {
         // save SAP-ID
         if (strlen($this->getProjectSetting("sap_id_field")) > 0 && strlen($psextPSN) == 0 && strlen($pishId) > 0) {
             $aData = array();
-            $aData[$sPK] = $this->trimZero($psPSN);
+            // use DAG assignment for record_id
+            if (is_numeric($user_rights['group_id'])) {
+                $aData[$sPK] = $user_rights['group_id']."-".$this->trimZero($psPSN);
+            } else {
+                $aData[$sPK] = $this->trimZero($psPSN);
+            }
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("sap_id_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("sap_id_event")); 
             }
             $aData[$this->getProjectSetting("sap_id_field")] = $pishId;
             // save data
-            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
+            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $user_rights['group_id']);
             if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);

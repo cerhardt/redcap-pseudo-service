@@ -136,7 +136,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             // E-PIX search
             $aResult = array();
             if (strlen($_POST['birthDate']) > 0 || strlen($_POST['lastName']) > 0 || strlen($_POST['firstName']) > 0) {
-                $aResult = $oPseudoService->searchPersonsByPDQ($_POST); 
+                $aResult = $oPseudoService->searchPersonsByPDQ($_POST);
             } elseif (strlen($_POST['ish_id']) > 0) {
                 $aResult = $oPseudoService->getActivePersonByLocalIdentifier($_POST['ish_id'],false); 
             }
@@ -271,6 +271,21 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             strlen($_POST['birthDate']) > 0 &&
             strlen($_POST['extID']) == 0 && 
             strlen($iISH_ID_ENC) == 0) {
+
+            // DAGs: load all DAG assignments into session
+            if ($oPseudoService->getProjectSetting("use_dags") === true && !isset($_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain])) {
+                // get all psns for domain
+                $aResult = $oPseudoService->listPSNs();
+
+                $aEPIXFilter = array();
+                foreach($aResult as $agPAS) {
+                  $aEPIXFilter[] = $agPAS['originalValue'];
+                }
+                $aAllPersons = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
+                foreach($aAllPersons as $aPerson) {
+                  $_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain][$aPerson['mpiId']['value']] = $aPerson['referenceIdentity']['value10'];
+                }
+            }
 
             $aResult = $oPseudoService->requestMPI($_POST);
             
