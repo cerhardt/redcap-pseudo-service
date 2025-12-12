@@ -54,11 +54,15 @@ class EPIX_gPAS extends PseudoService {
         // get REDCap ID
         $sID = $_GET['id'];
 
-        // remove DAG assignemt in record_id
-        $groups = REDCap::getGroupNames(false);
-        if (is_array($groups)) {
-            foreach($groups as $group_id => $foo) {
-                $sID = str_replace($group_id."-",'',$sID);
+        // remove DAG prefix in record_id?
+        if ($this->getProjectSetting("use_dags_prefix") === true) {
+            $groups = REDCap::getGroupNames(false);
+            if (is_array($groups)) {
+                $sID = preg_replace(
+                    '/^(?:' . implode('-|', array_map('preg_quote', array_keys($groups))) . '-)/',
+                    '',
+                    $sID
+                );
             }
         }
 
@@ -843,12 +847,8 @@ class EPIX_gPAS extends PseudoService {
         global $Proj, $project_id, $user_rights;
         $sPK = REDCap::getRecordIdField();
         $aData = array();
-        // use DAG assignment for record_id
-        if (is_numeric($user_rights['group_id'])) {
-            $aData[$sPK] = $user_rights['group_id']."-".$this->trimZero($psPSN);
-        } else {
-            $aData[$sPK] = $this->trimZero($psPSN);
-        }
+        $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
+
         if (REDCap::isLongitudinal()) {
             $form = $Proj->metadata[$sPK]['form_name'];
             foreach($Proj->eventsForms as $iEventID => $aForms) {
@@ -867,12 +867,7 @@ class EPIX_gPAS extends PseudoService {
         // save external psn
         if (strlen($this->getProjectSetting("extpsn_field")) > 0 && strlen($psextPSN) > 0) {
             $aData = array();
-            // use DAG assignment for record_id
-            if (is_numeric($user_rights['group_id'])) {
-                $aData[$sPK] = $user_rights['group_id']."-".$this->trimZero($psPSN);
-            } else {
-                $aData[$sPK] = $this->trimZero($psPSN);
-            }
+            $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("extpsn_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("extpsn_event")); 
@@ -889,12 +884,7 @@ class EPIX_gPAS extends PseudoService {
         // save SAP-ID
         if (strlen($this->getProjectSetting("sap_id_field")) > 0 && strlen($psextPSN) == 0 && strlen($pishId) > 0) {
             $aData = array();
-            // use DAG assignment for record_id
-            if (is_numeric($user_rights['group_id'])) {
-                $aData[$sPK] = $user_rights['group_id']."-".$this->trimZero($psPSN);
-            } else {
-                $aData[$sPK] = $this->trimZero($psPSN);
-            }
+            $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("sap_id_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("sap_id_event")); 

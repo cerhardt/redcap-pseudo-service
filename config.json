@@ -966,7 +966,7 @@
 
           {
                "key": "dag_title",
-               "name": "<p style='font-size:large'>DAG Setting</p>",
+               "name": "<p style='font-size:large'>DAG Settings</p>",
                "type": "descriptive"
           },
           {
@@ -975,7 +975,12 @@
               "super-users-only": true,
               "type": "checkbox"
           },
-
+          {
+            "key": "use_dags_prefix",
+            "name": "use DAG prefix for record-ids",
+            "super-users-only": true,
+            "type": "checkbox"
+          },
           {
                "key": "search_title",
                "name": "<p style='font-size:large'>Search Setting</p>",

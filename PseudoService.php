@@ -149,12 +149,23 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             }
             $this->gpas_domain = $this->getProjectSetting("gpas_domain");
 
-            // use DAG in EPIX?
+            // use DAGs in E-PIX?
             $this->group_id = '';
-            if ($this->getProjectSetting("use_dags") === true && isset($user_rights['group_id'])) {
+            $this->bnoDAG = false;
+            $this->dag_prefix = '';
+            if ($this->getProjectSetting("use_dags") === true) {
                 // Check if the user is in a data access group (DAG)
-                $this->group_id = $user_rights['group_id'];
+                if (is_numeric($user_rights['group_id'])) {
+                    $this->group_id = $user_rights['group_id'];
+                } else {
+                    $this->bnoDAG = true;
+                }
             }
+            // use DAGs in record_ids?
+            if ($this->getProjectSetting("use_dags_prefix") === true && is_numeric($user_rights['group_id'])) {
+                $this->dag_prefix = $user_rights['group_id']."-";
+            }
+
             /*
             // If $group_id is blank, then user is not in a DAG
             if ($group_id == '') {

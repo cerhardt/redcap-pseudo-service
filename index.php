@@ -829,11 +829,7 @@ if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] !=
 // PSN set => redirect to REDCap data entry home
 // ================================================================================================
 if (strlen($sPSN) > 0 && strlen($oPseudoService->getError()) == 0) {
-    if (is_numeric($user_rights['group_id'])) {
-        $sPSN = $user_rights['group_id']."-".$oPseudoService->trimZero($sPSN);
-    } else {
-        $sPSN = $oPseudoService->trimZero($sPSN);
-    }
+    $sPSN = $oPseudoService->dag_prefix.$oPseudoService->trimZero($sPSN);
     $homeURL = APP_PATH_WEBROOT . "DataEntry/record_home.php?" . http_build_query([
               "pid" => $project_id,
               "id" => $sPSN
@@ -849,6 +845,7 @@ if ($sMode == 'delete' && isset($_GET['del_mpiid_enc']) && PseudoService::isAllo
     if ($mpiID) {
         $sPSNTmp = $oPseudoService->getPseudonymFor($mpiID);
         if ($sPSNTmp) {
+            $sPSNTmp = $oPseudoService->dag_prefix.$sPSNTmp;
             // delete REDCap record
             $deleted = REDCAP::deleteRecord($project_id, $sPSNTmp);
             if ($deleted) {
@@ -903,6 +900,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 if (PseudoService::isAllowed('search')) {
 ?>
       <ul class="nav nav-pills">
+          <?php
+          if (!$oPseudoService->bnoDAG) {
+          ?>
         <li class="nav-item">
           <?php if ($sMode == 'search') { ?>
           <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
@@ -917,7 +917,8 @@ if (PseudoService::isAllowed('search')) {
           <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
           <?php } ?>
         </li>
-<?php   if (PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) { ?>
+<?php   }
+        if (PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
         </li>
@@ -927,7 +928,7 @@ if (PseudoService::isAllowed('search')) {
           <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=export">Export</a>
         </li>
 <?php   } ?>
-<?php   if (PseudoService::isAllowed('import')) { ?>
+<?php   if (PseudoService::isAllowed('import') && !$oPseudoService->bnoDAG) { ?>
         <li class="nav-item">
           <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
         </li>
@@ -958,7 +959,7 @@ if (PseudoService::isAllowed('search')) {
     // ================================================================================================
     // display search form
     // ================================================================================================
-    if ($sMode == 'search') { ?>
+    if ($sMode == 'search' && !$oPseudoService->bnoDAG) { ?>
     <?php if ($oPseudoService->use_epix === true) { ?>
           <h5>Personen suchen</h5>
     <?php } ?>

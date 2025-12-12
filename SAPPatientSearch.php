@@ -99,6 +99,12 @@ class SAPPatientSearch extends PseudoService {
             return (false);
         }
 
+        // use DAGs and no DAG assignment => return
+        if ($this->getProjectSetting("use_dags") === true && $this->group_id == '') {
+            $this->error = 'Please switch to DAG';
+            return (false);
+        }
+
         // class for calling E-PIX
         $oPseudoService = new EPIX_gPAS();
 
@@ -221,6 +227,20 @@ class SAPPatientSearch extends PseudoService {
                     $this->error = $e->getMessage();
                     return (false);
                 }
+            }
+
+            // DAGs: add DAG assignment to person
+            if ($this->getProjectSetting("use_dags") === true) {
+                $sDAG = $this->getProjectId().':'.$this->group_id;
+                $sess = & $_SESSION[$this->session]['epix'][$this->epix_domain];
+                if (isset($sess[$mpiId])) {
+                    $aTmp = explode("|", substr($sess[$mpiId], 1, -1));
+                    array_push($aTmp, $sDAG);
+                    $sDAG = implode("|", array_unique($aTmp));
+                }
+                $requestArray['identity']['value10'] = $sess[$mpiId] = '|'.$sDAG.'|';
+                $bMode ='update';
+                $bUpdate = true;
             }
 
             // update E-PIX data with data from SAP
