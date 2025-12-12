@@ -418,6 +418,13 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             foreach($aCSV as $i => $aRow) {
                 if (isset($aRefIdentity[$aRow['psn']])) {
 
+                    // Filter DAGs
+                    if ($oPseudoService->getProjectSetting("use_dags") === true && strlen($oPseudoService->group_id) > 0) {
+                        if (strpos($aRefIdentity[$aRow['psn']]['value10'],'|'.$oPseudoService->getProjectId().':'.$oPseudoService->group_id.'|') === false) {
+                            unset($aCSV[$i]);
+                            continue;
+                        }
+                    }
                     $aISH_IDs = array();
                     if ($oPseudoService->use_sap === true) {
                         if (isset($aRefIdentity[$aRow['psn']]['identifiers'])) {
