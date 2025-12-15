@@ -263,10 +263,26 @@ class EPIX_gPAS extends PseudoService {
         // DAGs: add DAG assignment to person
         if ($this->getProjectSetting("use_dags") === true) {
             $sDAG = $this->getProjectId().':'.$this->group_id;
+
+            // DAGs: load all DAG assignments into session
+            if (!isset($_SESSION[$this->session]['epix'][$this->epix_domain])) {
+                // get all psns for domain
+                $aResult = $this->listPSNs();
+
+                $aEPIXFilter = array();
+                foreach($aResult as $agPAS) {
+                    $aEPIXFilter[] = $agPAS['originalValue'];
+                }
+                $aAllPersons = $this->getActivePersonsByMPIBatch($aEPIXFilter);
+                foreach($aAllPersons as $aPerson) {
+                    $_SESSION[$this->session]['epix'][$this->epix_domain][$aPerson['mpiId']['value']] = $aPerson['referenceIdentity']['value10'];
+                }
+            }
+
             $sess = & $_SESSION[$this->session]['epix'][$this->epix_domain];
             if (isset($sess[$mpiId])) {
-                $aTmp = explode("|", substr($sess[$mpiId], 1, -1));
-                array_push($aTmp, $sDAG);
+                $aTmp = explode("|", trim($sess[$mpiId], ' |'));
+                $aTmp[] = $sDAG;
                 $sDAG = implode("|", array_unique($aTmp));
             }
             $requestArray['identity']['value10'] = $sess[$mpiId] = '|'.$sDAG.'|';

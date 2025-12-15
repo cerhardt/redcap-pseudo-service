@@ -272,21 +272,6 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             strlen($_POST['extID']) == 0 && 
             strlen($iISH_ID_ENC) == 0) {
 
-            // DAGs: load all DAG assignments into session
-            if ($oPseudoService->getProjectSetting("use_dags") === true && !isset($_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain])) {
-                // get all psns for domain
-                $aResult = $oPseudoService->listPSNs();
-
-                $aEPIXFilter = array();
-                foreach($aResult as $agPAS) {
-                  $aEPIXFilter[] = $agPAS['originalValue'];
-                }
-                $aAllPersons = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
-                foreach($aAllPersons as $aPerson) {
-                  $_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain][$aPerson['mpiId']['value']] = $aPerson['referenceIdentity']['value10'];
-                }
-            }
-
             $aResult = $oPseudoService->requestMPI($_POST);
             
             // update person
@@ -740,9 +725,34 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) {
     // keep person 1 or 2
     if (isset($_POST['assignIdentity'])) {
-      $aTmp = explode(":",$_POST['assignIdentity']);
+      $aTmp = explode("+",$_POST['assignIdentity']);
       //assignIdentity(PossibleMatchDTO.linkId, PossibleMatchDTO.matchingMPIIdentities[0].identity.identityId, comment)
       $oPseudoService->assignIdentity($aTmp[0],$aTmp[1]);
+      if ($oPseudoService->getProjectSetting("use_dags") === true && isset($aTmp[2]) && isset($aTmp[3])) {
+          $sess = & $_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain];
+          $result = $oPseudoService->getActivePersonByMPI($aTmp[2]);
+          $requestArray = array();
+          $requestArray['mpiId'] = $aTmp[2];
+          $requestArray['identity']['birthDate'] = $result['referenceIdentity']['birthDate'];
+          $requestArray['identity']['firstName'] = $result['referenceIdentity']['firstName'];
+          $requestArray['identity']['lastName'] = $result['referenceIdentity']['lastName'];
+          $requestArray['identity']['gender'] = $result['referenceIdentity']['gender'];
+          //$requestArray['force'] = true;
+          $requestArray['domainName'] = $oPseudoService->epix_domain;
+          $requestArray['sourceName'] = $oPseudoService->epix_external_source;
+
+          $aTmpDAG = explode("|", trim($result['referenceIdentity']['value10'], ' |'));
+          if (isset($aTmp[3])) {
+              $aTmpDAG[] = trim($aTmp[3], ' |');
+          }
+          $sDAG = implode("|", array_unique($aTmpDAG));
+          $requestArray['identity']['value10'] = $sess[$aTmp[2]] = '|'.$sDAG.'|';
+          try {
+              $result = $oPseudoService->SoapCall("epix",$requestArray,"updatePerson");
+          } catch (\Exception $e) {
+              $oPseudoService->error = $e->getMessage();
+          }
+      }
       Logging::logEvent('', $module->getModuleName(), "OTHER", '', '', "doublet resolution: ".$aTmp[0].", keep person ".$aTmp[1]);
     }
      
@@ -1565,10 +1575,19 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
                   continue;
               }          
           }
-          
+
           // show only internal dublettes
           $bOtherProjects = $bPSNInProject = 0;
+          $bOtherDAG = false;
           for($i=0;$i<=1;$i++) {
+              // DAGs: show only dublettes for current DAG
+              if ($oPseudoService->getProjectSetting("use_dags") === true && strlen($oPseudoService->group_id) > 0) {
+                  $dag_tmp = $aDubEntry['matchingMPIIdentities'][$i]['identity']['value10'];
+                  if (strpos($dag_tmp,'|'.$oPseudoService->getProjectId().':'.$oPseudoService->group_id.'|') === false) {
+                      $bOtherDAG = true;
+                  }
+              }
+
               $mpiId_tmp = $aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value'];
               $aPSNNet = $oPseudoService->getPSNNetFor($mpiId_tmp);
               if (is_array($aPSNNet['nodes'])) {
@@ -1581,9 +1600,9 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
                           $bPSNInProject ++;
                       }
                   }
-              }  
+              }
            }
-           if ($bOtherProjects == 0 && $bPSNInProject > 0) {
+           if ($bOtherProjects == 0 && $bPSNInProject > 0 && !$bOtherDAG) {
                 $aIntDubletten[] = $aDubEntry;
            }
       }
@@ -1626,6 +1645,11 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
                   $aDubPersons[$i]['country'] = $aDubEntry['matchingMPIIdentities'][$i]['identity']['contacts']['country'];
               }
               $aDubPersons[$i]['psn'] = $oPseudoService->getPseudonymFor($aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value']);
+
+              $aDubPersons[$i]['value'] = $aDubEntry['linkId'].'+'.$aDubEntry['matchingMPIIdentities'][$i]['identity']['identityId'];
+              if ($oPseudoService->getProjectSetting("use_dags") === true) {
+                  $aDubPersons[$i]['value'] .= '+'.$aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value'].'+'.$aDubEntry['matchingMPIIdentities'][1-$i]['identity']['value10'];
+              }
           }
           $sCreated_date = date('d.m.Y H:i:s', strtotime($aDubEntry['possibleMatchCreated']));
           print ('
@@ -1678,9 +1702,9 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
                 </tr>
                 <tr data-form="'.$aDubEntry['linkId'].'">
                   <td></td>
-                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubEntry['linkId'].':'.$aDubEntry['matchingMPIIdentities'][0]['identity']['identityId'].'">Behalten</button></td>
+                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[0]['value'].'">Behalten</button></td>
                   <td><button type="submit" class="btn btn-primaryrc d-print-none" name="removePossibleMatch" value="'.$aDubEntry['linkId'].'">Beide&nbsp;behalten</button></td>
-                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubEntry['linkId'].':'.$aDubEntry['matchingMPIIdentities'][1]['identity']['identityId'].'">Behalten</button></td>
+                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[1]['value'].'">Behalten</button></td>
                 </tr>
                 ');
       

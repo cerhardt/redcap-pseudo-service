@@ -231,16 +231,31 @@ class SAPPatientSearch extends PseudoService {
 
             // DAGs: add DAG assignment to person
             if ($this->getProjectSetting("use_dags") === true) {
-                $sDAG = $this->getProjectId().':'.$this->group_id;
-                $sess = & $_SESSION[$this->session]['epix'][$this->epix_domain];
+                $sDAG = $oPseudoService->getProjectId().':'.$oPseudoService->group_id;
+
+                // DAGs: load all DAG assignments into session
+                if (!isset($_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain])) {
+                    // get all psns for domain
+                    $aResult = $oPseudoService->listPSNs();
+
+                    $aEPIXFilter = array();
+                    foreach($aResult as $agPAS) {
+                        $aEPIXFilter[] = $agPAS['originalValue'];
+                    }
+                    $aAllPersons = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
+                    foreach($aAllPersons as $aPerson) {
+                        $_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain][$aPerson['mpiId']['value']] = $aPerson['referenceIdentity']['value10'];
+                    }
+                }
+
+                $sess = & $_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain];
                 if (isset($sess[$mpiId])) {
-                    $aTmp = explode("|", substr($sess[$mpiId], 1, -1));
-                    array_push($aTmp, $sDAG);
+                    $aTmp = explode("|", trim($sess[$mpiId], ' |'));
+                    $aTmp[] = $sDAG;
                     $sDAG = implode("|", array_unique($aTmp));
                 }
                 $requestArray['identity']['value10'] = $sess[$mpiId] = '|'.$sDAG.'|';
                 $bMode ='update';
-                $bUpdate = true;
             }
 
             // update E-PIX data with data from SAP
