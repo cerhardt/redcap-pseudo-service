@@ -247,52 +247,59 @@ class EPIX_gPAS extends PseudoService {
 
         // create new person
         if ($bMode == 'insert') {
+            if ($this->getProjectSetting("use_dags") === true) {
+                $sDAG = $this->getProjectId() . ':' . $this->group_id;
+                $requestArray['identity']['value10'] = '|'.$sDAG.'|';
+
+                $requestArray['requestConfig']['forceReferenceUpdate'] = true;
+                $requestArray['requestConfig']['saveAction'] = 'DONT_SAVE';
+                try {
+                    $result = $this->SoapCall("epix",$requestArray,"requestMPIWithConfig");
+                } catch (\Exception $e) {
+                    $this->error = $e->getMessage();
+                    return (false);
+                }
+                unset($requestArray['requestConfig']);
+                $matchStatus = $result['return']['matchStatus'];
+
+                // person exists => update
+                if ($matchStatus == 'PERFECT_MATCH' || $matchStatus == 'MATCH') {
+                    if (isset($result['return']['person']['referenceIdentity']['value10'])) {
+                        $aTmp = explode("|", trim($result['return']['person']['referenceIdentity']['value10'], ' |'));
+                        $aTmp[] = $sDAG;
+                        $sDAG = implode("|", array_unique($aTmp));
+                    }
+                    $requestArray['mpiId'] = $result['return']['person']['mpiId']['value'];
+                    $requestArray['identity']['value10'] = '|'.$sDAG.'|';
+                    try {
+                        $result = $this->SoapCall("epix",$requestArray,"updatePerson");
+                    } catch (\Exception $e) {
+                        $this->error = $e->getMessage();
+                        return (false);
+                    }
+                    return ($result);
+                }
+            }
+
             try {
-                $result = $this->SoapCall("epix",$requestArray);
+                $result = $this->SoapCall("epix", $requestArray);
             } catch (\Exception $e) {
                 $this->error = $e->getMessage();
                 return (false);
             }
-            if (isset($result['return']['person'])) {
-                $mpiId = $result['return']['person']['mpiId']['value'];
-            } else {
-                $mpiId = $result['mpiId']['value'];
-            }
-        }
-
-        // DAGs: add DAG assignment to person
-        if ($this->getProjectSetting("use_dags") === true) {
-            $sDAG = $this->getProjectId().':'.$this->group_id;
-
-            // DAGs: load all DAG assignments into session
-            if (!isset($_SESSION[$this->session]['epix'][$this->epix_domain])) {
-                // get all psns for domain
-                $aResult = $this->listPSNs();
-
-                $aEPIXFilter = array();
-                foreach($aResult as $agPAS) {
-                    $aEPIXFilter[] = $agPAS['originalValue'];
-                }
-                $aAllPersons = $this->getActivePersonsByMPIBatch($aEPIXFilter);
-                foreach($aAllPersons as $aPerson) {
-                    $_SESSION[$this->session]['epix'][$this->epix_domain][$aPerson['mpiId']['value']] = $aPerson['referenceIdentity']['value10'];
-                }
-            }
-
-            $sess = & $_SESSION[$this->session]['epix'][$this->epix_domain];
-            if (isset($sess[$mpiId])) {
-                $aTmp = explode("|", trim($sess[$mpiId], ' |'));
-                $aTmp[] = $sDAG;
-                $sDAG = implode("|", array_unique($aTmp));
-            }
-            $requestArray['identity']['value10'] = $sess[$mpiId] = '|'.$sDAG.'|';
-            $bMode ='update';
         }
 
         // update E-PIX data
         if ($bMode == 'update') {
             $requestArray['mpiId'] = $mpiId;
             $requestArray['force'] = true;
+
+            // get DAG assignment of person
+            if ($this->getProjectSetting("use_dags") === true) {
+                $aIdentifier = $this->getActivePersonByMPI($mpiId);
+                $requestArray['identity']['value10'] = $aIdentifier['referenceIdentity']['value10'];
+            }
+
             try {
                 $result = $this->SoapCall("epix",$requestArray,"updatePerson");
             } catch (\Exception $e) {

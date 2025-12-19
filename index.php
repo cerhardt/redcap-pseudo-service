@@ -350,7 +350,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
         // header variables
         $aHeader = array();
         $aHeader['psn'] = true;
-        
+
         // build filter for E-PIX and get extIDs for csv array
         $i = 0;
         foreach($agPASMap as $original => $psn) {
@@ -373,12 +373,29 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             // get personal data from E-PIX
             $aItems = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
 
-            // copy data to new array with psn as key 
+            // copy data to new array with psn as key
             $aRefIdentity = array();
             foreach($aItems as $key => $aResult) {
                 $mpiId = $aResult['mpiId']['value'];
                 $sPSNTmp = $agPASMap[$mpiId];
                 $aRefIdentity[$sPSNTmp] = $aResult['referenceIdentity'];
+                // find other identifiers from doublets
+                if (isset($aResult['otherIdentities'])) {
+                    // only 1 hit: convert array
+                    $aOtherIDs = array();
+                    if (isset($aResult['otherIdentities']['identityId'])) {
+                        $aOtherIDs[] = $aResult['otherIdentities'];
+                    } else {
+                        $aOtherIDs = $aResult['otherIdentities'];
+                    }
+                    foreach($aOtherIDs as $aOther) {
+                        if ($aOther['identifiers']['identifierDomain']['name'] == $oPseudoService->epix_id_domain) {
+                            $mpiId = $aOther['identifiers']['value'];
+                            $sPSNTmp = $agPASMap[$mpiId];
+                            $aRefIdentity[$sPSNTmp] = $aResult['referenceIdentity'];
+                        }
+                    }
+                }
             }
             unset($aItems);
 
@@ -410,6 +427,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                             continue;
                         }
                     }
+
                     $aISH_IDs = array();
                     if ($oPseudoService->use_sap === true) {
                         if (isset($aRefIdentity[$aRow['psn']]['identifiers'])) {
@@ -497,6 +515,8 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                             }
                         }
                     }
+                } else {
+                    unset($aCSV[$i]);
                 }
             }
             
@@ -728,8 +748,9 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
       $aTmp = explode("+",$_POST['assignIdentity']);
       //assignIdentity(PossibleMatchDTO.linkId, PossibleMatchDTO.matchingMPIIdentities[0].identity.identityId, comment)
       $oPseudoService->assignIdentity($aTmp[0],$aTmp[1]);
+      unset($_SESSION[$oPseudoService->session]['domains'][$oPseudoService->gpas_domain]['idat']);
+
       if ($oPseudoService->getProjectSetting("use_dags") === true && isset($aTmp[2]) && isset($aTmp[3])) {
-          $sess = & $_SESSION[$oPseudoService->session]['epix'][$oPseudoService->epix_domain];
           $result = $oPseudoService->getActivePersonByMPI($aTmp[2]);
           $requestArray = array();
           $requestArray['mpiId'] = $aTmp[2];
@@ -746,7 +767,7 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
               $aTmpDAG[] = trim($aTmp[3], ' |');
           }
           $sDAG = implode("|", array_unique($aTmpDAG));
-          $requestArray['identity']['value10'] = $sess[$aTmp[2]] = '|'.$sDAG.'|';
+          $requestArray['identity']['value10'] = '|'.$sDAG.'|';
           try {
               $result = $oPseudoService->SoapCall("epix",$requestArray,"updatePerson");
           } catch (\Exception $e) {
