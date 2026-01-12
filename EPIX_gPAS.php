@@ -872,15 +872,12 @@ class EPIX_gPAS extends PseudoService {
         $aData = array();
         $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
 
+        // create record in first event / arm
         if (REDCap::isLongitudinal()) {
-            $form = $Proj->metadata[$sPK]['form_name'];
-            foreach($Proj->eventsForms as $iEventID => $aForms) {
-                if (in_array($form, $aForms, true)) {
-                    $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $iEventID);
-                    break;
-                }
-            }
+            $events = REDCap::getEventNames(true, true);
+            $aData['redcap_event_name'] = array_shift($events);
         }
+
         // save data
         $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $user_rights['group_id']);
         if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {

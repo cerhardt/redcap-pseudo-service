@@ -868,10 +868,18 @@ if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] !=
 // ================================================================================================
 if (strlen($sPSN) > 0 && strlen($oPseudoService->getError()) == 0) {
     $sPSN = $oPseudoService->dag_prefix.$oPseudoService->trimZero($sPSN);
-    $homeURL = APP_PATH_WEBROOT . "DataEntry/record_home.php?" . http_build_query([
-              "pid" => $project_id,
-              "id" => $sPSN
-          ]);
+    if (isset($_GET['arm'])) {
+        $homeURL = APP_PATH_WEBROOT . "DataEntry/record_home.php?" . http_build_query([
+                        "pid" => $project_id,
+                        "id" => $sPSN,
+                        "arm" => $_GET['arm']
+                ]);
+    } else {
+        $homeURL = APP_PATH_WEBROOT . "DataEntry/record_home.php?" . http_build_query([
+                        "pid" => $project_id,
+                        "id" => $sPSN
+                ]);
+    }
     redirect($homeURL);
 }
 
@@ -1495,8 +1503,9 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
               </tr>
             </thead>
             <tbody>');
-    } 
+    }
 
+    $events = REDCap::getEventNames(false, false);
     foreach($aEpixResult as $aData) {
         
         // insert delete column
@@ -1529,8 +1538,29 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
 
             // E-PIX data
             if (strlen($aData['mpiid']) > 0) {
-                $mpi_url = http_build_query(["mpiid_enc" => encrypt($aData['mpiid'],$_SESSION[$oPseudoService->session]['enckey'])]);
-                $sJumpTD = '<td><a href="'.$module->moduleIndex.'&'.$mpi_url.'">'.RCView::fa('fa-solid fa-arrow-right"').'<img src="'.APP_PATH_IMAGES.'redcap_icon.gif"></a></td>';
+                // exists record in multple arms?
+                $sPSNTmp = $oPseudoService->getPseudonymFor($aData['mpiid']);
+                $params = array('project_id'=>$project_id, 'fields'=>array(REDCap::getRecordIdField()), 'records'=>array($oPseudoService->dag_prefix.$sPSNTmp));
+                $data = REDCap::getData($params);
+                $aArms = array();
+                foreach($data as $aEvents) {
+                    foreach($aEvents as $iEventTmp => $foo) {
+                        if (!isset($aArms[$Proj->eventInfo[$iEventTmp]['arm_num']])) {
+                            $aArms[$Proj->eventInfo[$iEventTmp]['arm_num']] = $iEventTmp;
+                        }
+                    }
+                }
+                if (count($aArms) > 1) {
+                    $sJumpTD = '<td>';
+                    foreach($aArms as $iArm => $iEventTmp) {
+                        $mpi_url = http_build_query(["mpiid_enc" => encrypt($aData['mpiid'], $_SESSION[$oPseudoService->session]['enckey']), "arm" => $iArm]);
+                        $sJumpTD .= '<a href="' . $module->moduleIndex . '&' . $mpi_url . '">' . RCView::fa('fa-solid fa-arrow-right"') . $events[$iEventTmp].'</a><br />';
+                    }
+                    $sJumpTD .= '</td>';
+                } else {
+                    $mpi_url = http_build_query(["mpiid_enc" => encrypt($aData['mpiid'], $_SESSION[$oPseudoService->session]['enckey'])]);
+                    $sJumpTD = '<td><a href="' . $module->moduleIndex . '&' . $mpi_url . '">' . RCView::fa('fa-solid fa-arrow-right"') . '<img src="' . APP_PATH_IMAGES . 'redcap_icon.gif"></a></td>';
+                }
                 if (isset($aData['ish_id_epix'])) {
                     $sIdTD = '<td>'.$aData['ish_id_epix'].'</td>';
                 }
