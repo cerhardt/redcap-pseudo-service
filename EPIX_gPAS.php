@@ -867,7 +867,7 @@ class EPIX_gPAS extends PseudoService {
     * @return boolean
     */
     public function createREDCap($psPSN, $psextPSN = '', $pishId = '') {
-        global $Proj, $project_id, $user_rights;
+        global $Proj, $project_id;
         $sPK = REDCap::getRecordIdField();
         $aData = array();
         $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
@@ -879,7 +879,7 @@ class EPIX_gPAS extends PseudoService {
         }
 
         // save data
-        $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $user_rights['group_id']);
+        $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $this->user_rights['group_id']);
         if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
             $this->setError("Der REDCap-Datensatz konnte nicht angelegt werden!");
             return (false);
@@ -895,7 +895,7 @@ class EPIX_gPAS extends PseudoService {
 
             $aData[$this->getProjectSetting("extpsn_field")] = $psextPSN;
             // save data
-            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $user_rights['group_id']);
+            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $this->user_rights['group_id']);
             if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);
@@ -911,7 +911,7 @@ class EPIX_gPAS extends PseudoService {
             }
             $aData[$this->getProjectSetting("sap_id_field")] = $pishId;
             // save data
-            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $user_rights['group_id']);
+            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $this->user_rights['group_id']);
             if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);

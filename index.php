@@ -16,7 +16,6 @@ $sExit = '';
 if (strlen($module->getProjectSetting("gpas_domain")) == 0 || strlen($module->getSystemSetting("auth_type1")) == 0) {
     $sExit = 'please configure the module first!';
 }
-
 // exit if access forms are missing
 $aForms = REDCap::getInstrumentNames(); 
 if (!isset($aForms['tc_access']) || !isset($aForms['tc_impexp'])) {

@@ -14,8 +14,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     
     public function __construct() {
         parent::__construct();
-        global $user_rights;
-        
+        $username = defined("USERID") ? USERID : null;
+        $this->user_rights = REDCap::getUserRights($username)[$username];
+
         $this->AccessToken = array();
         $this->SessionPrefix = '';
 
@@ -155,15 +156,15 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             $this->dag_prefix = '';
             if ($this->getProjectSetting("use_dags") === true) {
                 // Check if the user is in a data access group (DAG)
-                if (is_numeric($user_rights['group_id'])) {
-                    $this->group_id = $user_rights['group_id'];
+                if (is_numeric($this->user_rights['group_id'])) {
+                    $this->group_id = $this->user_rights['group_id'];
                 } else {
                     $this->bnoDAG = true;
                 }
             }
             // use DAGs in record_ids?
-            if ($this->getProjectSetting("use_dags_prefix") === true && is_numeric($user_rights['group_id'])) {
-                $this->dag_prefix = $user_rights['group_id']."-";
+            if ($this->getProjectSetting("use_dags_prefix") === true && is_numeric($this->user_rights['group_id'])) {
+                $this->dag_prefix = $this->user_rights['group_id']."-";
             }
 
             /*
@@ -503,7 +504,8 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     * @return boolean true/false
     */
     public static function isAllowed ($psTerm) {
-        global $user_rights;
+        $username = defined("USERID") ? USERID : null;
+        $user_rights = REDCap::getUserRights($username)[$username];
 
         switch ($psTerm) {
             case 'search':
