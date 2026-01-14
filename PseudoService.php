@@ -143,6 +143,10 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
 
         // Project settings
         if ($this->getProjectId()) {
+            // get user rights in project
+            $username = defined("USERID") ? USERID : null;
+            $this->user_rights = REDCap::getUserRights($username)[$username];
+
             if (intval($this->getProjectSetting("maxcnt")) > 0) {
                 $this->maxcnt = intval($this->getProjectSetting("maxcnt"));
             }
@@ -164,9 +168,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             if ($this->getProjectSetting("use_dags_prefix") === true && is_numeric($this->user_rights['group_id'])) {
                 $this->dag_prefix = $this->user_rights['group_id']."-";
             }
-
-            $username = defined("USERID") ? USERID : null;
-            $this->user_rights = REDCap::getUserRights($username)[$username];
 
             /*
             // If $group_id is blank, then user is not in a DAG
