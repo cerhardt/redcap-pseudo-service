@@ -14,8 +14,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     
     public function __construct() {
         parent::__construct();
-        $username = defined("USERID") ? USERID : null;
-        $this->user_rights = REDCap::getUserRights($username)[$username];
 
         $this->AccessToken = array();
         $this->SessionPrefix = '';
@@ -166,6 +164,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             if ($this->getProjectSetting("use_dags_prefix") === true && is_numeric($this->user_rights['group_id'])) {
                 $this->dag_prefix = $this->user_rights['group_id']."-";
             }
+
+            $username = defined("USERID") ? USERID : null;
+            $this->user_rights = REDCap::getUserRights($username)[$username];
 
             /*
             // If $group_id is blank, then user is not in a DAG
