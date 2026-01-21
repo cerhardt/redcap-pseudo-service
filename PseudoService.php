@@ -145,8 +145,10 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         if ($this->getProjectId()) {
             // get user rights in project
             $username = defined("USERID") ? USERID : null;
+    		if (\UserRights::isImpersonatingUser()) {
+    		    $username = \UserRights::getUsernameImpersonating();
+    		}
             $this->user_rights = REDCap::getUserRights($username)[$username];
-
             if (intval($this->getProjectSetting("maxcnt")) > 0) {
                 $this->maxcnt = intval($this->getProjectSetting("maxcnt"));
             }
