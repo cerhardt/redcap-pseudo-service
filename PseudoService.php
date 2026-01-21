@@ -509,6 +509,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     */
     public static function isAllowed ($psTerm) {
         $username = defined("USERID") ? USERID : null;
+        if (\UserRights::isImpersonatingUser()) {
+            $username = \UserRights::getUsernameImpersonating();
+        }
         $user_rights = REDCap::getUserRights($username)[$username];
 
         switch ($psTerm) {
