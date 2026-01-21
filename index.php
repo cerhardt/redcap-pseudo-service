@@ -402,6 +402,11 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             if ($oPseudoService->use_sap === true) {
                 $aHeader['SAP-ID'] = true;
             }
+            // export DAGs
+            if ($oPseudoService->getProjectSetting("use_dags") === true && $oPseudoService->bnoDAG === true) {
+                $aHeader['DAG'] = true;
+            }
+
             $aHeader['gender'] = true;
             $aHeader['degree'] = true;
             $aHeader['firstName'] = true;
@@ -447,7 +452,21 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                     
                     if (count($aISH_IDs) > 0) {
                         $aCSV[$i]['SAP-ID'] = implode(", ",$aISH_IDs);
-                    } 
+                    }
+
+                    // export DAGs
+                    if ($oPseudoService->getProjectSetting("use_dags") === true && $oPseudoService->bnoDAG === true) {
+                        $aTmpDAG = explode("|", trim($aRefIdentity[$aRow['psn']]['value10'], ' |'));
+                        $aDAG = array();
+                        foreach($aTmpDAG as $sTmpDAG) {
+                           $aTmpDAG2 = explode(":", $sTmpDAG);
+                           if ($aTmpDAG2[0] == $oPseudoService->getProjectId()) {
+                               $aDAG[] = REDCap::getGroupNames(true, $aTmpDAG2[1]);
+                           }
+                        }
+                        $aCSV[$i]['DAG'] = implode(", ",$aDAG);
+                    }
+
                     if (!is_array($aRefIdentity[$aRow['psn']]['gender'])) {
                         $aCSV[$i]['gender'] = $oPseudoService->aGender[$aRefIdentity[$aRow['psn']]['gender']];
                     }
