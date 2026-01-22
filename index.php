@@ -272,7 +272,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             strlen($iISH_ID_ENC) == 0) {
 
             $aResult = $oPseudoService->requestMPI($_POST);
-            
+
             // update person
             if (strlen($iMPI_ID_ENC) > 0) {
                 if (!$aResult) {
