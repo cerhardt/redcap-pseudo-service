@@ -991,6 +991,12 @@
               "name": "max. search hits",
               "required": false,
               "type": "text"
+          },
+          {
+            "key": "logging",
+            "name": "logs for debugging",
+            "super-users-only": true,
+            "type": "checkbox"
           }
 
 	],
