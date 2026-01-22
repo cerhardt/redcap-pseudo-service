@@ -3,8 +3,6 @@ namespace meDIC\PseudoService;
 use \XMLWriter as XMLWriter;
 use \REDCap as REDCap;
 use \RCView as RCView;
-use \Logging as Logging;
-
 
 include_once('SAPPatientSearch.php');
 include_once('EPIX_gPAS.php');
@@ -15,6 +13,7 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
     public function __construct() {
         parent::__construct();
 
+        $this->Debug = true;
         $this->AccessToken = array();
         $this->SessionPrefix = '';
 
@@ -181,7 +180,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             		. "\", whose unique group name is \"" . REDCap::getGroupNames(true, $group_id) . "\".";
             }
             */
-
+            if ($this->Debug) {
+                $this->removeLogs('timestamp < ?', date('Y-m-d'));
+            }
         }
         
         $this->error = '';
@@ -374,10 +375,10 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $aRequest = array('SOAP-ENV_Body' => array('ns1_'.$sFunctioName => $paRequest));
         $xml = new \SimpleXMLElement("<?xml version=\"1.0\" encoding=\"utf-8\"?><SOAP-ENV:Envelope></SOAP-ENV:Envelope>");
         array_to_xml( $aRequest, $xml );
-        $sXML= $xml->asXML();    
+        $sXML= $xml->asXML();
         $sXML = str_replace('SOAP-ENV_Body>','SOAP-ENV:Body>',$sXML);
         $sXML = str_replace('ns1_'.$sFunctioName,'ns1:'.$sFunctioName,$sXML);
-        
+
         // determine namespace / url
         $url = '';
         if ($psService == 'sap') {
@@ -401,12 +402,6 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             $iAuthType = $this->gpas_auth_type;
         }
         if (strlen($url) == 0) return (false);
-
-        //Logging::logEvent('', "pseudo_service", "OTHER", '', "SOAP" . ": " . htmlspecialchars($sXML), "DEBUG SOAP CALL");
-        //Logging::logEvent('', "pseudo_service", "OTHER", '', "SOAP URL" . ": " . $url, "DEBUG SOAP CALL");
-
-
-
 
         $aAuth = $this->getAuth($iAuthType);
         if (!$aAuth) return (false); 
@@ -442,13 +437,22 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         $curl = curl_init();
         curl_setopt_array($curl, $curl_options);
         $response = curl_exec($curl);
-        //Logging::logEvent('', "pseudo_service", "OTHER", '', "SOAP RESPONSE" . ": " . $response, "DEBUG SOAP CALL");
         //print("<pre>".htmlspecialchars(var_export($curl_options, true))."</pre>");
         //print("<pre>".htmlspecialchars(var_export($response, true))."</pre>");
         $curl_info = curl_getinfo($curl);
         //print("<pre>".htmlspecialchars(var_export($curl_info, true))."</pre>");
         $err = curl_error($curl);
         curl_close($curl);
+
+        if ($this->Debug) {
+            $this->log(
+                "$psService:$sFunctioName",
+                [
+                    "request" => var_export($curl_options, true),
+                    "response" => $response
+                ]
+            );
+        }
 
         // user is authenticated, but has the wrong scope
         if ($curl_info['http_code'] == '401') {

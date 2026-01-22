@@ -367,7 +367,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
             $aEPIXFilter[] = $original;
             $i++;
         }
-        
+
         if (count($aEPIXFilter) > 0 && $oPseudoService->use_epix === true) {
             // get personal data from E-PIX
             $aItems = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
@@ -454,7 +454,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                         $aCSV[$i]['SAP-ID'] = implode(", ",$aISH_IDs);
                     }
 
-                    // export DAGs
+                    // export DAGs if user is not assigned to a DAG
                     if ($oPseudoService->getProjectSetting("use_dags") === true && $oPseudoService->bnoDAG === true) {
                         $aTmpDAG = explode("|", trim($aRefIdentity[$aRow['psn']]['value10'], ' |'));
                         $aDAG = array();
@@ -913,43 +913,56 @@ if ($sMode == 'delete' && isset($_GET['del_mpiid_enc']) && PseudoService::isAllo
             // delete REDCap record
             $deleted = REDCAP::deleteRecord($project_id, $sPSNTmp);
             if ($deleted) {
-                // delete gPAS entry
-                $deleted = $oPseudoService->deleteEntry($mpiID);
-                if ($deleted) {
-                    // redcap log
-                    Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSNTmp, "PSN deleted");
-        
-                    // extID? skip E-PIX
-                    if ($module->getProjectSetting("extpsn") === true && str_starts_with($mpiID,$module->getProjectSetting("extpsn_prefix"))) {
-                        $oPseudoService->setError("Pseudonym / REDCap Datensatz wurde gelöscht!");
-                    } elseif ($oPseudoService->use_epix === true) {
-                        // delete person if not in other projects
-                        $bOtherProjects = false;
-                        $bPSNInProject = false;
-                        $aPSNNet = $oPseudoService->getPSNNetFor($mpiID);
-                        if (is_array($aPSNNet['nodes'])) {
-                            foreach($aPSNNet['nodes'] as $aNode) {
-                                if (!isset($aNode['level']) || !isset($aNode['domainName'])) continue;
-                                if ($aNode['level'] == '0' && $aNode['domainName'] != $module->getProjectSetting("gpas_domain")) {
-                                    $bOtherProjects = true;
+                $deletePSN = true;
+                // DAGs: delete PSN / Person only if not used in other DAG
+                if ($oPseudoService->getProjectSetting("use_dags") === true && strlen($oPseudoService->group_id) > 0) {
+                    $result = $oPseudoService->getActivePersonByMPI($mpiID);
+                    $aTmpDAG = explode("|", trim($result['referenceIdentity']['value10'], ' |'));
+                    if (strpos($result['referenceIdentity']['value10'],'|'.$oPseudoService->getProjectId().':'.$oPseudoService->group_id.'|') === false || count($aTmpDAG) > 1) {
+                        $deletePSN = false;
+                    }
+                }
+                if ($deletePSN) {
+                    // delete gPAS entry
+                    $deleted = $oPseudoService->deleteEntry($mpiID);
+                    if ($deleted) {
+                        // redcap log
+                        Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSNTmp, "PSN deleted");
+
+                        // extID? skip E-PIX
+                        if ($module->getProjectSetting("extpsn") === true && str_starts_with($mpiID, $module->getProjectSetting("extpsn_prefix"))) {
+                            $oPseudoService->setError("Pseudonym / REDCap Datensatz wurde gelöscht!");
+                        } elseif ($oPseudoService->use_epix === true) {
+                            // delete person if not in other projects
+                            $bOtherProjects = false;
+                            $bPSNInProject = false;
+                            $aPSNNet = $oPseudoService->getPSNNetFor($mpiID);
+                            if (is_array($aPSNNet['nodes'])) {
+                                foreach ($aPSNNet['nodes'] as $aNode) {
+                                    if (!isset($aNode['level']) || !isset($aNode['domainName'])) continue;
+                                    if ($aNode['level'] == '0' && $aNode['domainName'] != $module->getProjectSetting("gpas_domain")) {
+                                        $bOtherProjects = true;
+                                    }
+                                    if ($aNode['level'] == '0' && $aNode['domainName'] == $module->getProjectSetting("gpas_domain")) {
+                                        $bPSNInProject = true;
+                                    }
                                 }
-                                if ($aNode['level'] == '0' && $aNode['domainName'] == $module->getProjectSetting("gpas_domain")) {
-                                    $bPSNInProject = true;
+                                if (!$bOtherProjects && !$bPSNInProject) {
+                                    $oPseudoService->deactivatePerson($mpiID);
+                                    $deleted = $oPseudoService->deletePerson($mpiID);
+                                    if ($deleted) {
+                                        // redcap log
+                                        Logging::logEvent('', $module->getModuleName(), "OTHER", '', '', "Person deleted");
+                                        $oPseudoService->setError("Person / REDCap Datensatz wurde gelöscht!");
+                                    }
+                                } else {
+                                    $oPseudoService->setError("Pseudonym / REDCap Datensatz wurde gelöscht!");
                                 }
-                            }
-                            if (!$bOtherProjects && !$bPSNInProject) {
-                                $oPseudoService->deactivatePerson($mpiID);
-                                $deleted = $oPseudoService->deletePerson($mpiID);
-                                if ($deleted) {
-                                    // redcap log
-                                    Logging::logEvent('', $module->getModuleName(), "OTHER", '', '', "Person deleted");
-                                    $oPseudoService->setError("Person / REDCap Datensatz wurde gelöscht!");
-                                }
-                            } else {
-                                $oPseudoService->setError("Pseudonym / REDCap Datensatz wurde gelöscht!");
                             }
                         }
                     }
+                } else {
+                    $oPseudoService->setError("REDCap Datensatz wurde gelöscht!");
                 }
             }
         }
