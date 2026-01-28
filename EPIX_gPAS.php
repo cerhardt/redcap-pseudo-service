@@ -824,7 +824,7 @@ class EPIX_gPAS extends PseudoService {
         }
         // save data
         $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
-        if (count($result['errors']) > 0) {
+        if (is_array($result['errors']) && count($result['errors']) > 0) {
             $this->setError("Der REDCap-Datensatz konnte nicht angelegt werden!");
             return (false);
         }
