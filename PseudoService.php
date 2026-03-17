@@ -508,6 +508,12 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
             $username = \UserRights::getUsernameImpersonating();
         }
         $user_rights = REDCap::getUserRights($username)[$username];
+        
+        if (method_exists('UserRights','convertToLegacyDataViewingRights')) {
+            foreach($user_rights['forms'] as $key => $value) {
+                $user_rights['forms'][$key] = \UserRights::convertToLegacyDataViewingRights($value);
+            }
+        }
 
         switch ($psTerm) {
             case 'search':
