@@ -891,7 +891,11 @@ class EPIX_gPAS extends PseudoService {
         // save external psn
         if (strlen($this->getProjectSetting("extpsn_field")) > 0 && strlen($psextPSN) > 0) {
             $aData = array();
-            $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
+            if (strlen($this->dag_prefix) > 0) {
+                $aData[$sPK] = $this->dag_prefix.$psPSN;
+            } else {
+                $aData[$sPK] = $this->trimZero($psPSN);
+            }
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("extpsn_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("extpsn_event")); 
@@ -908,7 +912,11 @@ class EPIX_gPAS extends PseudoService {
         // save SAP-ID
         if (strlen($this->getProjectSetting("sap_id_field")) > 0 && strlen($psextPSN) == 0 && strlen($pishId) > 0) {
             $aData = array();
-            $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
+            if (strlen($this->dag_prefix) > 0) {
+                $aData[$sPK] = $this->dag_prefix.$psPSN;
+            } else {
+                $aData[$sPK] = $this->trimZero($psPSN);
+            }
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("sap_id_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("sap_id_event")); 
