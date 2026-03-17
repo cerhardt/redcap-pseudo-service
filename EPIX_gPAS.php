@@ -870,7 +870,11 @@ class EPIX_gPAS extends PseudoService {
         global $Proj, $project_id;
         $sPK = REDCap::getRecordIdField();
         $aData = array();
-        $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
+        if (strlen($this->dag_prefix) > 0) {
+            $aData[$sPK] = $this->dag_prefix.$psPSN;
+        } else {
+            $aData[$sPK] = $this->trimZero($psPSN);
+        }
 
         // create record in first event / arm
         if (REDCap::isLongitudinal()) {
