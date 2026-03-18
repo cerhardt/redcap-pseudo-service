@@ -841,7 +841,9 @@ class EPIX_gPAS extends PseudoService {
     * @return string PSN
     */
     public function trimZero($sPSN) {
-        $sPSN = ltrim($sPSN,'0');
+        if (strlen($this->dag_prefix) == 0) {
+            $sPSN = ltrim($sPSN,'0');
+        }
         return ($sPSN);
     }
     
@@ -853,7 +855,9 @@ class EPIX_gPAS extends PseudoService {
     * @return string PSN
     */
     public function addZero($sPSN) {
-        $sPSN = str_pad($sPSN, $_SESSION[$this->session]['domains'][$this->gpas_domain]['config']['psnLength'], '0', STR_PAD_LEFT);
+        if (strlen($this->dag_prefix) == 0) {
+            $sPSN = str_pad($sPSN, $_SESSION[$this->session]['domains'][$this->gpas_domain]['config']['psnLength'], '0', STR_PAD_LEFT);
+        }
         return ($sPSN);
     }
 
