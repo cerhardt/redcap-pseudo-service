@@ -51,16 +51,21 @@ class EPIX_gPAS extends PseudoService {
             return;
         }
 
-        // not logged in? => return
-        if (!$this->getlogin()) {
-            $_SESSION[$this->session]['redirect'] = $_SERVER['QUERY_STRING'];        
-            printf ($this->idatwrap, 'Bitte in TEIS <a href="'.$this->moduleIndex.'">anmelden</a> zur Anzeige der IDAT');
-            return;
-        }
-        
         // get REDCap ID
         $sID = $_GET['id'];
-        
+
+        // remove DAG prefix in record_id?
+        if ($this->getProjectSetting("use_dags_prefix") === true) {
+            $groups = REDCap::getGroupNames(false);
+            if (is_array($groups)) {
+                $sID = preg_replace(
+                    '/^(?:' . implode('-|', array_map('preg_quote', array_keys($groups))) . '-)/',
+                    '',
+                    $sID
+                );
+            }
+        }
+
         // is idat stored in session?
         if (isset($_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID])) {
             printf ($this->idatwrap, $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID]);
@@ -76,46 +81,50 @@ class EPIX_gPAS extends PseudoService {
             if (str_starts_with($mpiID,$this->getProjectSetting("extpsn_prefix"))) {
                 $mpiID = substr($mpiID, strlen($this->getProjectSetting("extpsn_prefix")));
                 $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID] = $mpiID;
-                printf ($this->idatwrap, $mpiID);
+                printf ($this->idatwrap, $this->getProjectSetting("extpsn_label").' '.$mpiID);
                 return;
             }
         }
 
         // get SAP-ID (ID_DOMAIN) from E-PIX
         $aISH_IDs = array();
-        $aIdentifier = $this->getAllIdentifierForAcivePersonWithMPI($mpiID);
-        foreach($aIdentifier as $aId) {
-            if ($aId['identifierDomain']['name'] == $this->epix_id_domain) {
-                $aISH_IDs[] = $aId['value'];
+        if ($this->use_sap === true) {
+            $aIdentifier = $this->getAllIdentifierForAcivePersonWithMPI($mpiID);
+            foreach($aIdentifier as $aId) {
+                if ($aId['identifierDomain']['name'] == $this->epix_id_domain) {
+                    $aISH_IDs[] = $aId['value'];
+                }
             }
         }
-
-        // get personal data from E-PIX
-        $aIdentifier = $this->getActivePersonByMPI($mpiID);
-        $aRefIdentity = $aIdentifier['referenceIdentity'];
-        $sIdat = '';
-        if (!is_array($aRefIdentity['firstName'])) {
-            $sIdat =  $aRefIdentity['firstName'];     
-        }
-        if (!is_array($aRefIdentity['lastName'])) {
-            $sIdat .=  ' '.$aRefIdentity['lastName'];     
-        }
-        if (!is_array($aRefIdentity['mothersMaidenName'])) {
-            if (strlen($aRefIdentity['mothersMaidenName']) > 0 && $aRefIdentity['mothersMaidenName'] != $aRefIdentity['lastName']) {
-                $sIdat .= ' (geb. '.$aRefIdentity['mothersMaidenName'].')';
+        
+        if ($this->use_epix === true) {
+            // get personal data from E-PIX
+            $aIdentifier = $this->getActivePersonByMPI($mpiID);
+            $aRefIdentity = $aIdentifier['referenceIdentity'];
+            $sIdat = '';
+            if (!is_array($aRefIdentity['firstName'])) {
+                $sIdat =  $aRefIdentity['firstName'];     
             }
-        }
-        if (!is_array($aRefIdentity['birthDate'])) {
-            if (strlen($aRefIdentity['birthDate']) > 0) {
-                $aTmp = explode("T",$aRefIdentity['birthDate']);
-                $sIdat .=  ' ('.\DateTimeRC::format_user_datetime($aTmp[0], 'Y-M-D_24', 'D.M.Y_24').')';     
+            if (!is_array($aRefIdentity['lastName'])) {
+                $sIdat .=  ' '.$aRefIdentity['lastName'];     
             }
+            if (!is_array($aRefIdentity['mothersMaidenName'])) {
+                if (strlen($aRefIdentity['mothersMaidenName']) > 0 && $aRefIdentity['mothersMaidenName'] != $aRefIdentity['lastName']) {
+                    $sIdat .= ' (geb. '.$aRefIdentity['mothersMaidenName'].')';
+                }
+            }
+            if (!is_array($aRefIdentity['birthDate'])) {
+                if (strlen($aRefIdentity['birthDate']) > 0) {
+                    $aTmp = explode("T",$aRefIdentity['birthDate']);
+                    $sIdat .=  ' ('.\DateTimeRC::format_user_datetime($aTmp[0], 'Y-M-D_24', 'D.M.Y_24').')';     
+                }
+            }
+            if (count($aISH_IDs) > 0) {
+                $sIdat .= ', SAP-ID '.implode(", ",$aISH_IDs);
+            }
+            $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID] = $sIdat;
+            printf ($this->idatwrap, $sIdat);
         }
-        if (count($aISH_IDs) > 0) {
-            $sIdat .= ', SAP-ID '.implode(", ",$aISH_IDs);
-        }
-        $_SESSION[$this->session]['domains'][$this->gpas_domain]['idat'][$sID] = $sIdat;
-        printf ($this->idatwrap, $sIdat);
     }
 
 
@@ -163,13 +172,15 @@ class EPIX_gPAS extends PseudoService {
         if (strlen($paPerson['firstName']) > 0) {
             $requestArray['searchMask']['identity']['firstName'] = rtrim($paPerson['firstName'],"*");
         }
+        if ($this->getProjectSetting("use_dags") === true && strlen($this->group_id) > 0) {
+           $requestArray['searchMask']['identity']['value10'] = '|'.$this->getProjectId().':'.$this->group_id.'|';
+        }
         try {
             $result = $this->SoapCall("epix",$requestArray);
         } catch (\Exception $e) {
             $this->error = $e->getMessage();
             return (false);
         }
-
         // only 1 hit: convert array
         $aItems = array();
         if (isset($result['return']['mpiId'])) {
@@ -177,7 +188,6 @@ class EPIX_gPAS extends PseudoService {
         } else {
             $aItems = $result['return'];
         }
-        
         return ($aItems);
     }
 
@@ -190,6 +200,13 @@ class EPIX_gPAS extends PseudoService {
     * @return array return personal data (MPI, matchStatus)
     */
     public function requestMPI($paPerson) {
+
+        // use DAGs and no DAG assignment => return
+        if ($this->getProjectSetting("use_dags") === true && $this->group_id == '') {
+            $this->error = 'Please switch to DAG';
+            return (false);
+        }
+
         // if MPI is given, decrypt MPI and update person
         if (strlen($paPerson['mpiid_enc']) > 0) {
             $mpiId = decrypt($paPerson['mpiid_enc'],$_SESSION[$this->session]['enckey']);
@@ -230,18 +247,59 @@ class EPIX_gPAS extends PseudoService {
 
         // create new person
         if ($bMode == 'insert') {
+            if ($this->getProjectSetting("use_dags") === true) {
+                $sDAG = $this->getProjectId() . ':' . $this->group_id;
+                $requestArray['identity']['value10'] = '|'.$sDAG.'|';
+
+                $requestArray['requestConfig']['forceReferenceUpdate'] = true;
+                $requestArray['requestConfig']['saveAction'] = 'DONT_SAVE';
+                try {
+                    $result = $this->SoapCall("epix",$requestArray,"requestMPIWithConfig");
+                } catch (\Exception $e) {
+                    $this->error = $e->getMessage();
+                    return (false);
+                }
+                unset($requestArray['requestConfig']);
+                $matchStatus = $result['return']['matchStatus'];
+
+                // person exists => update
+                if ($matchStatus == 'PERFECT_MATCH' || $matchStatus == 'MATCH') {
+                    if (isset($result['return']['person']['referenceIdentity']['value10'])) {
+                        $aTmp = explode("|", trim($result['return']['person']['referenceIdentity']['value10'], ' |'));
+                        $aTmp[] = $sDAG;
+                        $sDAG = implode("|", array_unique($aTmp));
+                    }
+                    $requestArray['mpiId'] = $result['return']['person']['mpiId']['value'];
+                    $requestArray['identity']['value10'] = '|'.$sDAG.'|';
+                    try {
+                        $result = $this->SoapCall("epix",$requestArray,"updatePerson");
+                    } catch (\Exception $e) {
+                        $this->error = $e->getMessage();
+                        return (false);
+                    }
+                    return ($result);
+                }
+            }
+
             try {
-                $result = $this->SoapCall("epix",$requestArray);
+                $result = $this->SoapCall("epix", $requestArray);
             } catch (\Exception $e) {
                 $this->error = $e->getMessage();
                 return (false);
             }
         }
 
-        // update E-PIX data 
+        // update E-PIX data
         if ($bMode == 'update') {
             $requestArray['mpiId'] = $mpiId;
             $requestArray['force'] = true;
+
+            // get DAG assignment of person
+            if ($this->getProjectSetting("use_dags") === true) {
+                $aIdentifier = $this->getActivePersonByMPI($mpiId);
+                $requestArray['identity']['value10'] = $aIdentifier['referenceIdentity']['value10'];
+            }
+
             try {
                 $result = $this->SoapCall("epix",$requestArray,"updatePerson");
             } catch (\Exception $e) {
@@ -249,7 +307,7 @@ class EPIX_gPAS extends PseudoService {
                 return (false);
             }
         }
-        
+
         return ($result);
     }
 
@@ -783,7 +841,9 @@ class EPIX_gPAS extends PseudoService {
     * @return string PSN
     */
     public function trimZero($sPSN) {
-        $sPSN = ltrim($sPSN,'0');
+        if (strlen($this->dag_prefix) == 0) {
+            $sPSN = ltrim($sPSN,'0');
+        }
         return ($sPSN);
     }
     
@@ -795,7 +855,9 @@ class EPIX_gPAS extends PseudoService {
     * @return string PSN
     */
     public function addZero($sPSN) {
-        $sPSN = str_pad($sPSN, $_SESSION[$this->session]['domains'][$this->gpas_domain]['config']['psnLength'], '0', STR_PAD_LEFT);
+        if (strlen($this->dag_prefix) == 0) {
+            $sPSN = str_pad($sPSN, $_SESSION[$this->session]['domains'][$this->gpas_domain]['config']['psnLength'], '0', STR_PAD_LEFT);
+        }
         return ($sPSN);
     }
 
@@ -812,34 +874,33 @@ class EPIX_gPAS extends PseudoService {
         global $Proj, $project_id;
         $sPK = REDCap::getRecordIdField();
         $aData = array();
-        $aData[$sPK] = $this->trimZero($psPSN);
+        $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
+
+        // create record in first event / arm
         if (REDCap::isLongitudinal()) {
-            $form = $Proj->metadata[$sPK]['form_name'];
-            foreach($Proj->eventsForms as $iEventID => $aForms) {
-                if (in_array($form, $aForms, true)) {
-                    $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $iEventID);
-                    break;
-                }
-            }
+            $events = REDCap::getEventNames(true, true);
+            $aData['redcap_event_name'] = array_shift($events);
         }
+
         // save data
-        $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
-        if (is_array($result['errors']) && count($result['errors']) > 0) {
+        $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $this->user_rights['group_id']);
+        if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
             $this->setError("Der REDCap-Datensatz konnte nicht angelegt werden!");
             return (false);
         }
         // save external psn
         if (strlen($this->getProjectSetting("extpsn_field")) > 0 && strlen($psextPSN) > 0) {
             $aData = array();
-            $aData[$sPK] = $this->trimZero($psPSN);
+            $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("extpsn_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("extpsn_event")); 
             }
+
             $aData[$this->getProjectSetting("extpsn_field")] = $psextPSN;
             // save data
-            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
-            if (count($result['errors']) > 0) {
+            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $this->user_rights['group_id']);
+            if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);
             }
@@ -847,15 +908,15 @@ class EPIX_gPAS extends PseudoService {
         // save SAP-ID
         if (strlen($this->getProjectSetting("sap_id_field")) > 0 && strlen($psextPSN) == 0 && strlen($pishId) > 0) {
             $aData = array();
-            $aData[$sPK] = $this->trimZero($psPSN);
+            $aData[$sPK] = $this->dag_prefix.$this->trimZero($psPSN);
 
             if (REDCap::isLongitudinal() && strlen($this->getProjectSetting("sap_id_event")) > 0) {
                 $aData['redcap_event_name'] = REDCap::getEventNames(true, true, $this->getProjectSetting("sap_id_event")); 
             }
             $aData[$this->getProjectSetting("sap_id_field")] = $pishId;
             // save data
-            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)));
-            if (count($result['errors']) > 0) {
+            $result = REDCap::saveData($project_id, 'json', json_encode(array($aData)), 'normal', 'YMD', 'flat',  $this->user_rights['group_id']);
+            if ((is_array($result['errors']) && count($result['errors']) > 0) || (!is_array($result['errors']) && strlen($result['errors']) > 0)) {
                 $this->setError("Pseudonym konnte nicht in REDCap-Studie gespeichert werden!");
                 return (false);
             }
