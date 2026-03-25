@@ -370,8 +370,15 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 
         if (count($aEPIXFilter) > 0 && $oPseudoService->use_epix === true) {
             // get personal data from E-PIX
-            $aItems = $oPseudoService->getActivePersonsByMPIBatch($aEPIXFilter);
-
+            $aChunks = array_chunk($aEPIXFilter,1000);
+            $aItems = array();
+            foreach($aChunks as $aTmp) {
+                $aITmp = $oPseudoService->getActivePersonsByMPIBatch($aTmp);
+                if (is_array($aITmp)) {
+                    $aItems = array_merge($aItems,$aITmp);
+                }
+            }
+     
             // copy data to new array with psn as key
             $aRefIdentity = array();
             foreach($aItems as $key => $aResult) {

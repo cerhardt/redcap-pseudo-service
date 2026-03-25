@@ -464,9 +464,11 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
         // convert xml to array
         $plainXML = PseudoService::mungXML($response);
         $arrayResult = json_decode(json_encode(SimpleXML_Load_String($plainXML, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
-        // omit first two levels of response
-        $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));        
-        $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));        
+        if (is_array($arrayResult)) {
+            // omit first two levels of response
+            $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));        
+            $arrayResult = call_user_func_array('array_merge', array_values($arrayResult));        
+        } 
 
         // return result
         return($arrayResult);
