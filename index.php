@@ -13,7 +13,8 @@ if ($module->getProjectSetting("validate_pat_id") === true) {
 
 $sExit = '';
 // exit if gPAS domain is not configured or no auth type is defined
-if (strlen($module->getProjectSetting("gpas_domain")) == 0 || strlen($module->getSystemSetting("auth_type1")) == 0) {
+if (strlen($module->getProjectSetting("gpas_domain")) == 0 || 
+    (strlen($module->getSystemSetting("auth_type1")) == 0 && strlen($module->getProjectSetting("project_auth_type1")) == 0)) {
     $sExit = 'please configure the module first!';
 }
 // exit if access forms are missing
