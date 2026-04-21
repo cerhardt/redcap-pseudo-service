@@ -137,14 +137,9 @@ class SAPPatientSearch extends PseudoService {
         } catch (\Exception $e) {
             $bMode = 'insert';
         }
-        
+
+        // search only
         if ($bSearchOnly) {
-            if ($bMode == 'insert') {        
-                $result['return']['matchStatus'] = 'NO_MATCH';
-            }
-            if ($bMode == 'update') {        
-                $result['return']['matchStatus'] = 'PERFECT_MATCH';
-            }
             return ($result);
         }
 

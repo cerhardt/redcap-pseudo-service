@@ -628,6 +628,7 @@ class EPIX_gPAS extends PseudoService {
     * @return mixed PSN / false if MPI doesn't exist
     */
     public function getPseudonymFor($piMPI) {
+        if (strlen($piMPI) == 0) return (false);
         $requestArray = Array();
         $requestArray['domainName'] = $this->gpas_domain;
         $requestArray['value'] = $piMPI;
