@@ -259,7 +259,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
               // save pseudonym in REDCap study
               $oPseudoService->createREDCap($sPSN, $sExtPS);
           } else {
-              $oPseudoService->setError("Dieses Pseudonym existiert bereits!");
+              $oPseudoService->setError($module->tt('psn_exists'));
           }
       }
 
@@ -279,7 +279,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                 if (!$aResult) {
                     $_SESSION[$oPseudoService->session]['msg'] = $oPseudoService->getError();
                 } else {
-                    $_SESSION[$oPseudoService->session]['msg'] = 'Die Personendaten wurden aktualisiert!';
+                    $_SESSION[$oPseudoService->session]['msg'] = $module->tt('person_saved');
                 }
                 redirect($module->moduleIndex);
             }
@@ -527,7 +527,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                     if (!is_array($aContact['countryCode'])) {
                         $aCSV[$i]['countryCode'] = $aContact['countryCode'];     
                     }
-                
+
                     // add custom vars
                     if (is_array($module->getProjectSetting("cust-vars-list"))) {
                         foreach($module->getProjectSetting("cust-vars-list") as $iCust => $foo) {
@@ -634,7 +634,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                               $aCSV[$i]['error'] = $oPseudoService->getError();
                           }
                       } else {
-                          $aCSV[$i]['error'] = "Dieses Pseudonym existiert bereits!";
+                          $aCSV[$i]['error'] = $module->tt('psn_exists');
                       }
                       continue;
                   }
@@ -659,7 +659,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       if ($sGender !== false) {
                           $aRow['gender'] = $sGender;
                       } else {
-                          $aCSV[$i]['error'] = "Bitte überprüfen Sie das Geschlecht! (M,F,X,O,U)";
+                          $aCSV[$i]['error'] = $module->tt('gender_check');
                           continue;
                       }
                   }
@@ -735,7 +735,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                           $aCSV[$i]['error'] = $oPseudoService->getError();
                       }
                   } else {
-                    $aCSV[$i]['error'] = "Diese Person existiert bereits!";
+                    $aCSV[$i]['error'] = $module->tt('person_exists');
                   }
               
               } // end foreach import row
@@ -756,7 +756,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   Logging::logEvent('', $module->getModuleName(), "OTHER", '', '', "import");
                   exit;
               } else {
-                  $oPseudoService->setError('Bitte überprüfen Sie die Importdatei!');
+                  $oPseudoService->setError($module->tt('import_file_check'));
               }
           
           } //is_uploaded_file
@@ -768,7 +768,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 // ================================================================================================
 // dubletten
 // ================================================================================================
-if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) {
+if ($sMode == 'dubletten' && PseudoService::isAllowed('export') && $oPseudoService->use_epix === true) {
     // keep person 1 or 2
     if (isset($_POST['assignIdentity'])) {
       $aTmp = explode("+",$_POST['assignIdentity']);
@@ -830,7 +830,7 @@ if (strlen($sPSN) == 0 && PseudoService::isAllowed('search') && $_GET['edit'] !=
                     if (!$aResult) {
                         $_SESSION[$oPseudoService->session]['msg'] = $oSAPPatientSearch->getError();
                     } else {
-                        $_SESSION[$oPseudoService->session]['msg'] = 'Die Personendaten wurden aktualisiert!';
+                        $_SESSION[$oPseudoService->session]['msg'] = $module->tt('person_saved');
                     }
                     redirect($module->moduleIndex);
                 }
@@ -961,16 +961,16 @@ if ($sMode == 'delete' && isset($_GET['del_mpiid_enc']) && PseudoService::isAllo
                                     if ($deleted) {
                                         // redcap log
                                         Logging::logEvent('', $module->getModuleName(), "OTHER", '', '', "Person deleted");
-                                        $oPseudoService->setError("Person / REDCap Datensatz wurde gelöscht!");
+                                        $oPseudoService->setError($module->tt('delete_person'));
                                     }
                                 } else {
-                                    $oPseudoService->setError("Pseudonym / REDCap Datensatz wurde gelöscht!");
+                                    $oPseudoService->setError($module->tt('delete_psn'));
                                 }
                             }
                         }
                     }
                 } else {
-                    $oPseudoService->setError("REDCap Datensatz wurde gelöscht!");
+                    $oPseudoService->setError($module->tt('delete_redcap'));
                 }
             }
         }
@@ -990,32 +990,32 @@ if (PseudoService::isAllowed('search')) {
           ?>
         <li class="nav-item">
           <?php if ($sMode == 'search') { ?>
-          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
+          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>"><?php echo $module->tt('search'); ?></a>
           <?php } ?>
           <?php if ($sMode == 'create' && $_GET['edit'] != '1') { ?>
-          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Anlegen</a>
+          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>"><?php echo $module->tt('create'); ?></a>
           <?php } ?>
           <?php if ($sMode == 'create' && $_GET['edit'] == '1') { ?>
-          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>">Bearbeiten</a>
+          <a class="nav-link active" aria-current="page" href="<?php echo ($module->moduleIndex); ?>"><?php echo $module->tt('edit'); ?></a>
           <?php } ?>
           <?php if ($sMode != 'create' && $sMode != 'search') { ?>
-          <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>">Suche</a>
+          <a class="nav-link" href="<?php echo ($module->moduleIndex); ?>"><?php echo $module->tt('search'); ?></a>
           <?php } ?>
         </li>
 <?php   }
-        if (PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) { ?>
+        if (PseudoService::isAllowed('export') && $oPseudoService->use_epix === true) { ?>
         <li class="nav-item">
-          <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten">Dubletten</a>
+          <a class="nav-link<?php if ($sMode == 'dubletten') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=dubletten"><?php echo $module->tt('doublet'); ?></a>
         </li>
 <?php   } ?>
 <?php   if (PseudoService::isAllowed('export')) { ?>
         <li class="nav-item">
-          <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=export">Export</a>
+          <a class="nav-link<?php if ($sMode == 'export') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=export"><?php echo $module->tt('export'); ?></a>
         </li>
 <?php   } ?>
 <?php   if (PseudoService::isAllowed('import') && !$oPseudoService->bnoDAG) { ?>
         <li class="nav-item">
-          <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import">Import</a>
+          <a class="nav-link<?php if ($sMode == 'import') print (' active" aria-current="page"'); else print ('"'); ?> href="<?php echo ($module->moduleIndex); ?>&mode=import"><?php echo $module->tt('import'); ?></a>
         </li>
 <?php   } ?>
       </ul><br />
@@ -1046,37 +1046,17 @@ if (PseudoService::isAllowed('search')) {
     // ================================================================================================
     if ($sMode == 'search' && !$oPseudoService->bnoDAG) { ?>
     <?php if ($oPseudoService->use_epix === true) { ?>
-          <h5>Personen suchen</h5>
+          <h5><?php echo $module->tt('search_person'); ?></h5>
     <?php } ?>
           <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
-    <?php if ($oPseudoService->use_sap === true) { ?>
+    <?php if ($module->getProjectSetting("searchid") === true) { ?>
           <div class="form-group row">
-            <label for="ish_id" class="col-sm-2 col-form-label">SAP-ID</label>
+            <label for="psn" class="col-sm-2 col-form-label"><?php echo $module->tt('psn'); ?></label>
             <div class="col-sm-5">
-              <input type="text" class="form-control" id="ish_id" name="ish_id" value="<?php echo $_POST['ish_id']; ?>">
+              <input type="text" class="form-control" id="psn" name="psn" value="<?php echo $_POST['psn']; ?>">
             </div>
           </div>
-    <?php } ?>
-    <?php if ($oPseudoService->use_epix === true) { ?>
-          <div class="form-group row">
-            <label for="firstName" class="col-sm-2 col-form-label">Vorname</label>
-            <div class="col-sm-5">
-              <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $_POST['firstName']; ?>">
-            </div>
-          </div>
-          <div class="form-group row">
-            <label for="lastName" class="col-sm-2 col-form-label">Nachname</label>
-            <div class="col-sm-5">
-              <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo $_POST['lastName']; ?>">
-            </div>
-          </div>
-          <div class="form-group row">
-            <label for="birthDate" class="col-sm-2 col-form-label">Geburtsdatum (DD.MM.YYYY)</label>
-            <div class="col-sm-5">
-              <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $_POST['birthDate']; ?>">
-            </div>
-          </div>
-    <?php } ?>
+    <?php } ?>      
     <?php if ($module->getProjectSetting("extpsn") === true) { ?>
            <!-- externes Pseudonym -->
           <h5><?php print ($module->getProjectSetting("extpsn_label")); ?> suchen</h5>
@@ -1087,15 +1067,99 @@ if (PseudoService::isAllowed('search')) {
             </div>
           </div>
     <?php } ?>      
+    <?php if ($oPseudoService->use_sap === true) { ?>
+          <div class="form-group row">
+            <label for="ish_id" class="col-sm-2 col-form-label">SAP-ID</label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="ish_id" name="ish_id" value="<?php echo $_POST['ish_id']; ?>">
+            </div>
+          </div>
+    <?php } ?>
+    <?php if ($oPseudoService->use_epix === true) { ?>
+          <div class="form-group row">
+            <label for="firstName" class="col-sm-2 col-form-label"><?php echo $module->tt('first_name'); ?></label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $_POST['firstName']; ?>">
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="lastName" class="col-sm-2 col-form-label"><?php echo $module->tt('last_name'); ?></label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo $_POST['lastName']; ?>">
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="birthDate" class="col-sm-2 col-form-label"><?php echo $module->tt('birthdate'); ?></label>
+            <div class="col-sm-5">
+              <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $_POST['birthDate']; ?>">
+            </div>
+          </div>
+    <?php } ?>
           <div class="form-group row">
             <div class="col-sm-offset-2 col-sm-5">
-              <button type="submit" class="btn btn-secondary" name="submit">Suchen</button>
+              <button type="submit" class="btn btn-secondary" name="submit"><?php echo $module->tt('search'); ?></button>
             </div>
           </div>
           <input type="hidden" name="mode" value="search">
           </form>
-      
-    <?php
+    <?php 
+         if ($module->getProjectSetting("searchid") === true) { 
+            $params = [
+                'return_format' => 'json',
+                'project_id'    => $project_id,
+                'fields'        => REDCap::getRecordIdField(),
+                'groups'        => $oPseudoService->group_id
+            ];
+            $urlparams = [
+                "pid" => $project_id
+            ];
+            // get first event / arm
+            if (REDCap::isLongitudinal()) {
+                $events = REDCap::getEventNames(true, true);
+                $firstev = array_shift($events);
+                $event_id = REDCap::getEventIdFromUniqueEvent ($firstev);
+                $params['events'] = $firstev;
+                $urlparams['arm'] = $Proj->eventInfo[$event_id]['arm_num'];
+            }
+            $q = REDCap::getData($params);
+            $records = json_decode($q,true);
+            $list = array();
+            foreach($records as $record) {
+                $list[] = $record[REDCap::getRecordIdField()];
+            }
+            $tagspsn = json_encode($list);
+            $homeURL = APP_PATH_WEBROOT . "DataEntry/record_home.php?" . http_build_query($urlparams);
+            
+        ?>
+        <script type='text/javascript'>
+        $(document).ready(function() {
+            var tagspsn = <?= $tagspsn ?>;
+            var $psn = $("[name='psn']");
+
+            $psn.autocomplete({
+                autoFocus: true,
+                source: tagspsn,
+                select: function(event, ui) {
+                    event.preventDefault();
+                    var selectedValue = ui.item.value;
+                    window.location.href = "<?= $homeURL ?>&id=" + encodeURIComponent(selectedValue);
+                }
+            });
+
+            // TAB-Taste: ersten Vorschlag auswählen
+            $psn.on("keydown", function(e) {
+                if (e.key !== "Tab") return;
+                var instance = $psn.autocomplete("instance");
+                if (instance && instance.menu.active) {
+                    e.preventDefault();
+                    instance.menu.active.find("a").trigger("click");
+                }
+            });
+        });
+        </script>
+
+    <?php    
+        } // end searchid
     } // end search mode 
 } // end isAllowed('search')
 
@@ -1186,9 +1250,9 @@ if ($sMode == 'create'
         }
 
         if ($_GET['edit'] == '1') {
-            print("<h5>Person bearbeiten</h5>");
+            print("<h5>".$module->tt('edit_person')."</h5>");
         } else {
-            print("<h5>Person anlegen</h5>");
+            print("<h5>".$module->tt('create_person')."</h5>");
         }
         ?>
           <form method="post" action="<?php echo ($module->moduleIndex); ?>">
@@ -1210,7 +1274,7 @@ if ($sMode == 'create'
         if ((strlen($iISH_ID_ENC) == 0 || strlen($iMPI_ID_ENC) > 0) && $oPseudoService->manual_edit === true) {
          ?>
           <div class="form-group row">
-            <label for="gender" class="col-sm-2 col-form-label">Geschlecht*</label>
+            <label for="gender" class="col-sm-2 col-form-label"><?php echo $module->tt('gender'); ?>*</label>
             <div class="radio">
               <?php foreach($oPseudoService->aGender as $sKey => $sVal) {
                   $sSel = '';
@@ -1224,61 +1288,61 @@ if ($sMode == 'create'
             </div>
           </div>
           <div class="form-group row">
-            <label for="degree" class="col-sm-2 col-form-label">Titel</label>
+            <label for="degree" class="col-sm-2 col-form-label"><?php echo $module->tt('title'); ?></label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="degree" name="degree" value="<?php echo $aPost['degree']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="firstName" class="col-sm-2 col-form-label">Vorname*</label>
+            <label for="firstName" class="col-sm-2 col-form-label"><?php echo $module->tt('first_name'); ?>*</label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $aPost['firstName']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="lastName" class="col-sm-2 col-form-label">Nachname*</label>
+            <label for="lastName" class="col-sm-2 col-form-label"><?php echo $module->tt('last_name'); ?>*</label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo $aPost['lastName']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="mothersMaidenName" class="col-sm-2 col-form-label">Geburtsname</label>
+            <label for="mothersMaidenName" class="col-sm-2 col-form-label"><?php echo $module->tt('last_name_birth'); ?></label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="mothersMaidenName" name="mothersMaidenName" value="<?php echo $aPost['mothersMaidenName']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="birthDate" class="col-sm-2 col-form-label">Geburtsdatum (DD.MM.YYYY)*</label>
+            <label for="birthDate" class="col-sm-2 col-form-label"><?php echo $module->tt('birthdate'); ?>*</label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $aPost['birthDate']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="street" class="col-sm-2 col-form-label">Straße</label>
+            <label for="street" class="col-sm-2 col-form-label"><?php echo $module->tt('street'); ?></label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="street" name="street" value="<?php echo $aPost['street']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="zipCode" class="col-sm-2 col-form-label">Postleitzahl</label>
+            <label for="zipCode" class="col-sm-2 col-form-label"><?php echo $module->tt('zip'); ?></label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="zipCode" name="zipCode" value="<?php echo $aPost['zipCode']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="city" class="col-sm-2 col-form-label">Wohnort</label>
+            <label for="city" class="col-sm-2 col-form-label"><?php echo $module->tt('city'); ?></label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="city" name="city" value="<?php echo $aPost['city']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="phone" class="col-sm-2 col-form-label">Telefon</label>
+            <label for="phone" class="col-sm-2 col-form-label"><?php echo $module->tt('phone'); ?></label>
             <div class="col-sm-5">
               <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $aPost['phone']; ?>"<?php echo ($sDis); ?>>
             </div>
           </div>
           <div class="form-group row">
-            <label for="country" class="col-sm-2 col-form-label">Land</label>
+            <label for="country" class="col-sm-2 col-form-label"><?php echo $module->tt('country'); ?></label>
             <div class="col-sm-5">
             <select class="form-control" id="country" name="country"<?php echo ($sDis); ?>>
                   <option value=""></option>
@@ -1313,7 +1377,7 @@ if ($sMode == 'create'
     } ?>
           <div class="form-group row">
             <div class="col-sm-offset-2 col-sm-5">
-              <button type="submit" class="btn btn-secondary" name="submit">Eintragen</button>
+              <button type="submit" class="btn btn-secondary" name="submit"><?php echo $module->tt('submit'); ?></button>
             </div>
           </div>
           <input type="hidden" name="mode" value="create">
@@ -1326,7 +1390,7 @@ if ($sMode == 'create'
     
     if ($module->getProjectSetting("extpsn") === true && strlen($iISH_ID_ENC) == 0 && strlen($iMPI_ID_ENC) == 0) { ?>
        <!-- externes Pseudonym -->
-      <h5><?php print ($module->getProjectSetting("extpsn_label")); ?> anlegen</h5>
+      <h5><?php echo $module->tt('create_person_extid', $module->getProjectSetting("extpsn_label")); ?></h5>
       <form method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
         <label for="extID" class="col-sm-2 col-form-label"><?php print ($module->getProjectSetting("extpsn_label")); ?>
@@ -1395,11 +1459,11 @@ if ($sMode == 'create'
 // display export form
 // ================================================================================================
 if ($sMode == 'export' && PseudoService::isAllowed('export')) { ?>
-      <h5>Liste exportieren</h5>
+      <h5><?php echo ($module->tt('export_list')); ?></h5>
       <form style="max-width:700px;" method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
         <div class="col-sm-5">
-          <label for="psn_filter">Studienpseudonyme (optional):</label>
+          <label for="psn_filter"><?php echo ($module->tt('export_psn')); ?>:</label>
           <textarea id="psn_filter" name="psn_filter" class="form-control" rows="10"><?php echo $_POST['psn_filter']; ?></textarea>
         </div>
       </div>
@@ -1416,11 +1480,11 @@ if ($sMode == 'export' && PseudoService::isAllowed('export')) { ?>
 // display import form
 // ================================================================================================
 if ($sMode == 'import' && PseudoService::isAllowed('import')) { ?>
-      <h5>Liste importieren</h5>
+      <h5><?php echo ($module->tt('import_list')); ?></h5>
       <form style="max-width:700px;" enctype="multipart/form-data" method="post" action="<?php echo ($module->moduleIndex); ?>">
       <div class="form-group row">
         <div class="col-sm-5">
-            <label for="file_upload">CSV-Datei (mit ";" getrennt)</label>
+            <label for="file_upload"><?php echo ($module->tt('import_csv')); ?></label>
             <input type="file" id="file_upload" name="file_upload"> 
         </div>
       </div>
@@ -1497,7 +1561,7 @@ function confirmDelete(mpi) {
 
 </script>
 <div id="confirmDelete" title="REDCap-Datensatz / Pseudonym / Person löschen" style="display:none;">
-	<p>Wollen Sie wirklich den REDCap Datensatz, das Studienpseudonym und die Person löschen?</p>
+	<p><?php echo $module->tt('confirm_delete'); ?></p>
 </div>
 
 <?php
@@ -1519,7 +1583,7 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
             <thead>
               <tr>
                 <th>'.$module->getProjectSetting("extpsn_label").'</th>
-                <th>Studienpseudonym</th>
+                <th>'.$module->tt('psn').'</th>
                 <th></th>
                 '.$sDelTD.'
               </tr>
@@ -1530,9 +1594,9 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
         <table class="table table-hover" style="max-width:700px;">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Vorname</th>
-                <th>Geburtsdatum</th>');
+                <th>'.$module->tt('last_name').'</th>
+                <th>'.$module->tt('first_name').'</th>
+                <th>'.$module->tt('birthdate').'</th>');
         if ($oPseudoService->use_sap === true) { 
             print ('<th>SAP-ID</th>');
         }
@@ -1544,7 +1608,6 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
             <tbody>');
     }
 
-    $events = REDCap::getEventNames(false, false);
     foreach($aEpixResult as $aData) {
         
         // insert delete column
@@ -1585,15 +1648,15 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
                 foreach($data as $aEvents) {
                     foreach($aEvents as $iEventTmp => $foo) {
                         if (!isset($aArms[$Proj->eventInfo[$iEventTmp]['arm_num']])) {
-                            $aArms[$Proj->eventInfo[$iEventTmp]['arm_num']] = $iEventTmp;
+                            $aArms[$Proj->eventInfo[$iEventTmp]['arm_num']] = $Proj->eventInfo[$iEventTmp]['arm_name'];
                         }
                     }
                 }
                 if (count($aArms) > 1) {
                     $sJumpTD = '<td>';
-                    foreach($aArms as $iArm => $iEventTmp) {
+                    foreach($aArms as $iArm => $sArm) {
                         $mpi_url = http_build_query(["mpiid_enc" => encrypt($aData['mpiid'], $_SESSION[$oPseudoService->session]['enckey']), "arm" => $iArm]);
-                        $sJumpTD .= '<a href="' . $module->moduleIndex . '&' . $mpi_url . '">' . RCView::fa('fa-solid fa-arrow-right"') . $events[$iEventTmp].'</a><br />';
+                        $sJumpTD .= '<a href="' . $module->moduleIndex . '&' . $mpi_url . '">' . RCView::fa('fa-solid fa-arrow-right"') .$sArm.'</a><br />';
                     }
                     $sJumpTD .= '</td>';
                 } else {
@@ -1646,7 +1709,7 @@ if (is_array($aEpixResult) && count($aEpixResult) > 0 && PseudoService::isAllowe
 // ================================================================================================
 // dubletten
 // ================================================================================================
-if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService->use_epix === true) {
+if ($sMode == 'dubletten' && PseudoService::isAllowed('export') && $oPseudoService->use_epix === true) {
      
       $aDubletten = $oPseudoService->getPossibleMatchesForDomain();
 
@@ -1703,13 +1766,13 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
           <thead>
             <tr>
               <th></th>
-              <th>Name</th>
-              <th>Vorname</th>
-              <th>Geburtsdatum</th>
+              <th>'.$module->tt('last_name').'</th>
+              <th>'.$module->tt('first_name').'</th>
+              <th>'.$module->tt('birthdate').'</th>
               <th></th>
-              <th>Name</th>
-              <th>Vorname</th>
-              <th>Geburtsdatum</th>
+              <th>'.$module->tt('last_name').'</th>
+              <th>'.$module->tt('first_name').'</th>
+              <th>'.$module->tt('birthdate').'</th>
               <th></th>
             </tr>
           </thead>
@@ -1761,25 +1824,25 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
                   <td colspan="3">'.$aDubPersons[1]['psn'].'</td>
                 </tr>
                 <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>Vorname</td>
+                  <td>'.$module->tt('first_name').'</td>
                   <td colspan="3">'.$aDubPersons[0]['firstName'].'</td>
                   <td>&nbsp;&nbsp;</td>
                   <td colspan="3">'.$aDubPersons[1]['firstName'].'</td>
                 </tr>
                 <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>Nachname</td>
+                  <td>'.$module->tt('last_name').'</td>
                   <td colspan="3">'.$aDubPersons[0]['lastName'].'</td>
                   <td>&nbsp;&nbsp;</td>
                   <td colspan="3">'.$aDubPersons[1]['lastName'].'</td>
                 </tr>
                 <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>Geschlecht</td>
+                  <td>'.$module->tt('gender').'</td>
                   <td colspan="3">'.$aDubPersons[0]['gender'].'</td>
                   <td>&nbsp;&nbsp;</td>
                   <td colspan="3">'.$aDubPersons[1]['gender'].'</td>
                 </tr>
                 <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>Geburtsdatum</td>
+                  <td>'.$module->tt('birthdate').'</td>
                   <td colspan="3">'.$aDubPersons[0]['birthDate'].'</td>
                   <td>&nbsp;&nbsp;</td>
                   <td colspan="3">'.$aDubPersons[1]['birthDate'].'</td>
@@ -1792,9 +1855,9 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('edit') && $oPseudoService
                 </tr>
                 <tr data-form="'.$aDubEntry['linkId'].'">
                   <td></td>
-                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[0]['value'].'">Behalten</button></td>
-                  <td><button type="submit" class="btn btn-primaryrc d-print-none" name="removePossibleMatch" value="'.$aDubEntry['linkId'].'">Beide&nbsp;behalten</button></td>
-                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[1]['value'].'">Behalten</button></td>
+                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[0]['value'].'">'.$module->tt('keep').'</button></td>
+                  <td><button type="submit" class="btn btn-primaryrc d-print-none" name="removePossibleMatch" value="'.$aDubEntry['linkId'].'">'.$module->tt('keep_both').'</button></td>
+                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[1]['value'].'">'.$module->tt('keep').'</button></td>
                 </tr>
                 ');
       
@@ -1817,9 +1880,9 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 
       echo ('<br />&nbsp;<br />');
       if ($module->getProjectSetting("extpsn") === true && strlen($_POST['extID']) > 0) {
-          print('<a href="'.$module->moduleIndex.'&mode=create&extID='.$_POST['extID'].'">Neue Person mit '.$module->getProjectSetting("extpsn_label").' '.$_POST['extID'].' anlegen</a>');
+          print('<a href="'.$module->moduleIndex.'&mode=create&extID='.$_POST['extID'].'">'.$module->tt('create_person_extid', $module->getProjectSetting("extpsn_label").' '.$_POST['extID']).'</a>');
       } elseif ($oPseudoService->manual_edit === true) {
-          print('<a href="'.$module->moduleIndex.'&mode=create">Neue Person anlegen</a>');
+          print('<a href="'.$module->moduleIndex.'&mode=create">'.$module->tt('create_person').'</a>');
       }
 
   }

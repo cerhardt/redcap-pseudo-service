@@ -24,7 +24,8 @@
         "project": [
             {
                 "name": "Pseudonyme",
-                "icon": "key",
+                "tt_name": "pseudonyms",
+                "icon": "search",
                 "url": "index.php",
                 "show-header-and-footer": false
             }
@@ -40,13 +41,11 @@
         {
             "key": "project_custom_settings",
             "name": "use custom project settings",
-            "super-users-only": true,
             "type": "checkbox"
         },
         {
             "key": "project_auth_overwrite",
             "name": "overwrite system auth settings",
-            "super-users-only": true,
             "type": "checkbox",
             "branchingLogic": {
                 "field": "project_custom_settings",
@@ -75,7 +74,6 @@
             "key": "project_auth_type1",
             "name": "Login Authentication Type 1",
             "required": true,
-            "super-users-only": true,
             "type": "dropdown",
             "choices": [
               {
@@ -109,7 +107,6 @@
             "key": "project_auth_name1",
             "name": "Authentication 1: Name",
             "required": false,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type1",
                 "op": "<>",
@@ -121,7 +118,6 @@
             "name": "Basic Auth 1: username",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type1",
                 "value": "basic"
@@ -132,7 +128,6 @@
             "name": "Basic Auth 1: secret",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type1",
                 "value": "basic"
@@ -143,7 +138,6 @@
             "name": "Authorization Server 1: URL",
             "type": "text",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -163,7 +157,6 @@
             "name": "OIDC Server 1: Client ID",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -183,7 +176,6 @@
             "name": "OIDC Server 1: Client secret",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -203,7 +195,6 @@
             "key": "project_auth_type2",
             "name": "Login Authentication Type 2",
             "required": false,
-            "super-users-only": true,
             "type": "dropdown",
             "choices": [
               {
@@ -229,7 +220,6 @@
             "key": "project_auth_name2",
             "name": "Authentication 2: Name",
             "required": false,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type2",
                 "op": "<>",
@@ -241,7 +231,6 @@
             "name": "Basic Auth 2: username",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type2",
                 "value": "basic"
@@ -252,7 +241,6 @@
             "name": "Basic Auth 2: secret",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type2",
                 "value": "basic"
@@ -263,7 +251,6 @@
             "name": "Authorization Server 2: URL",
             "type": "text",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -283,7 +270,6 @@
             "name": "OIDC Server 2: Client ID",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -303,7 +289,6 @@
             "name": "OIDC Server 2: Client secret",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -348,7 +333,6 @@
             "key": "project_auth_name3",
             "name": "Authentication 3: Name",
             "required": false,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type3",
                 "op": "<>",
@@ -360,7 +344,6 @@
             "name": "Basic Auth 3: username",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type3",
                 "value": "basic"
@@ -371,7 +354,6 @@
             "name": "Basic Auth 3: secret",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_auth_type3",
                 "value": "basic"
@@ -382,7 +364,6 @@
             "name": "Authorization Server 3: URL",
             "type": "text",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -402,7 +383,6 @@
             "name": "OIDC Server 3: Client ID",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -422,7 +402,6 @@
             "name": "OIDC Server 3: Client secret",
             "type": "password",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "or",
                 "conditions": [
@@ -447,21 +426,18 @@
             "key": "gpas_domain",
             "name": "gPAS domain",
             "required": true,
-            "super-users-only": true,
             "type": "text"
         },
 
           {
             "key": "extpsn",
             "name": "store pseudonyms in gPAS",
-            "super-users-only": true,
             "type": "checkbox"
           },
           {
               "key": "extpsn_label",
               "name": "Custom label for pseudonym field",
               "type": "text",
-              "super-users-only": true,
               "branchingLogic": {
                   "field": "extpsn",
                   "value": "true"
@@ -471,7 +447,6 @@
               "key": "extpsn_prefix",
               "name": "prefix",
               "type": "text",
-              "super-users-only": true,
               "branchingLogic": {
                   "field": "extpsn",
                   "value": "true"
@@ -481,7 +456,6 @@
               "key": "validate_pat_id",
               "name": "validate Pat-ID",
               "type": "checkbox",
-              "super-users-only": true,
               "branchingLogic": {
                   "field": "extpsn",
                   "value": "true"
@@ -491,7 +465,6 @@
               "key": "use_9_digits_pat_id",
               "name": "allow 9 digits input for Pat.-ID (default: 10 digits)",
               "type": "checkbox",
-              "super-users-only": true,
                 "branchingLogic": {
                     "type": "and",
                     "conditions": [
@@ -511,7 +484,6 @@
               "name": "Field to store pseudonym",
               "type": "field-list",
               "autocomplete": true,
-              "super-users-only": true,
               "branchingLogic": {
                   "field": "extpsn",
                   "value": "true"
@@ -521,7 +493,6 @@
               "key": "extpsn_event",
               "name": "Event to store pseudonym",
               "type": "event-list",
-              "super-users-only": true,
               "branchingLogic": {
                   "field": "extpsn",
                   "value": "true"
@@ -652,7 +623,6 @@
             "key": "project_use_epix",
             "name": "Use E-PIX?",
             "type": "checkbox",
-            "super-users-only": true,
             "branchingLogic": {
                 "field": "project_custom_settings",
                 "value": "true"
@@ -696,7 +666,6 @@
             "name": "E-PIX API URL",
             "required": true,
             "type": "text",
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "and",
                 "conditions": [
@@ -716,7 +685,6 @@
             "name": "E-PIX OIDC Scope",
             "required": false,
             "type": "text",
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "and",
                 "conditions": [
@@ -735,7 +703,6 @@
             "key": "project_epix_domain",
             "name": "E-PIX Domain",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "and",
                 "conditions": [
@@ -754,7 +721,6 @@
             "key": "project_epix_safe_source",
             "name": "E-PIX safe source",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "and",
                 "conditions": [
@@ -773,7 +739,6 @@
             "key": "project_epix_external_source",
             "name": "E-PIX external source",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "and",
                 "conditions": [
@@ -792,7 +757,6 @@
             "key": "project_epix_id_domain",
             "name": "E-PIX ID Domain",
             "required": true,
-            "super-users-only": true,
             "branchingLogic": {
                 "type": "and",
                 "conditions": [
@@ -819,7 +783,6 @@
         {
             "key": "project_use_sap",
             "name": "Use SAP?",
-            "super-users-only": true,
             "type": "checkbox",
             "branchingLogic": {
                 "field": "project_custom_settings",
@@ -831,7 +794,6 @@
           {
               "key": "save_sap_id",
               "name": "save SAP-ID in REDCap",
-              "super-users-only": true,
               "type": "checkbox",
                 "branchingLogic": {
                     "field": "project_custom_settings",
@@ -843,7 +805,6 @@
               "name": "field to store SAP-ID <br><small style='color:#da0000;'>field needs to be marked as identifying</small></b style='color:black'> ",
               "type": "field-list",
               "autocomplete": true,
-              "super-users-only": true,
                 "branchingLogic": {
                     "field": "project_custom_settings",
                     "value": "true"
@@ -853,7 +814,6 @@
               "key": "sap_id_event",
               "name": "event to store SAP-ID",
               "type": "event-list",
-              "super-users-only": true,
                 "branchingLogic": {
                     "field": "project_custom_settings",
                     "value": "true"
@@ -864,7 +824,6 @@
         {
             "key": "extern",
             "name": "use additional external probands",
-            "super-users-only": true,
             "type": "checkbox",
                 "branchingLogic": {
                     "field": "project_custom_settings",
@@ -972,18 +931,16 @@
           {
               "key": "use_dags",
               "name": "use DAGs for E-PIX access",
-              "super-users-only": true,
               "type": "checkbox"
           },
           {
             "key": "use_dags_prefix",
             "name": "use DAG prefix for record-ids",
-            "super-users-only": true,
             "type": "checkbox"
           },
           {
                "key": "search_title",
-               "name": "<p style='font-size:large'>Search Setting</p>",
+               "name": "<p style='font-size:large'>Search Settings</p>",
                "type": "descriptive"
           },
           {
@@ -993,9 +950,13 @@
               "type": "text"
           },
           {
+              "key": "searchid",
+              "name": "search for REDCap records",
+              "type": "checkbox"
+          },
+          {
             "key": "logging",
             "name": "logs for debugging",
-            "super-users-only": true,
             "type": "checkbox"
           }
 

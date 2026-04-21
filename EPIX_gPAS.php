@@ -9,11 +9,11 @@ class EPIX_gPAS extends PseudoService {
 		parent::__construct();
 
         $this->aGender = array(
-            "M" => "Männlich",
-            "F" => "Weiblich",
-            "X" => "Divers",
-            "O" => "Sonstiges",
-            "U" => "Unbekannt"
+            "M" => $this->tt('gender_m'),
+            "F" => $this->tt('gender_f'),
+            "X" => $this->tt('gender_x'),
+            "O" => $this->tt('gender_o'),
+            "U" => $this->tt('gender_u')
         );
         
         $this->aIsoCodes = array();
@@ -23,7 +23,7 @@ class EPIX_gPAS extends PseudoService {
         }
         
         // HTML code for showing IDAT on pages with forms
-        $this->idatwrap = '<div class="blue" style="margin:-13px 0 0;">%s</div><div>&nbsp;</div>';
+        $this->idatwrap = '<div class="blue_ps" style="margin:-13px 0 0;">%s</div><div>&nbsp;</div>';
         
         // load gpas domain properties in session
         if ($this->getProjectId() && !isset($_SESSION[$this->session]['domains'][$this->gpas_domain])) {
@@ -50,7 +50,8 @@ class EPIX_gPAS extends PseudoService {
         if (!PseudoService::isAllowed('search')) {
             return;
         }
-
+        echo "<link rel=\"stylesheet\" href=\"".$this->getUrl('style.css')."\">";
+        
         // get REDCap ID
         $sID = $_GET['id'];
 
@@ -110,7 +111,7 @@ class EPIX_gPAS extends PseudoService {
             }
             if (!is_array($aRefIdentity['mothersMaidenName'])) {
                 if (strlen($aRefIdentity['mothersMaidenName']) > 0 && $aRefIdentity['mothersMaidenName'] != $aRefIdentity['lastName']) {
-                    $sIdat .= ' (geb. '.$aRefIdentity['mothersMaidenName'].')';
+                    $sIdat .= ' ('.$this->tt('born').'. '.$aRefIdentity['mothersMaidenName'].')';
                 }
             }
             if (!is_array($aRefIdentity['birthDate'])) {
