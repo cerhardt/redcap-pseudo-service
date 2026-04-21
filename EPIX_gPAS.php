@@ -197,10 +197,11 @@ class EPIX_gPAS extends PseudoService {
     *
     * @author  Christian Erhardt
     * @param array $paPerson personal data
+    * @param boolean $bSearchOnly search only
     * @access  public
     * @return array return personal data (MPI, matchStatus)
     */
-    public function requestMPI($paPerson) {
+    public function requestMPI($paPerson, $bSearchOnly = false) {
 
         // use DAGs and no DAG assignment => return
         if ($this->getProjectSetting("use_dags") === true && $this->group_id == '') {
@@ -214,6 +215,9 @@ class EPIX_gPAS extends PseudoService {
             $bMode = 'update';
         } else {
             $bMode = 'insert';
+        }
+        if ($bSearchOnly == true) {
+            $bMode = 'search';
         }
 
         $requestArray = Array();
@@ -303,6 +307,17 @@ class EPIX_gPAS extends PseudoService {
 
             try {
                 $result = $this->SoapCall("epix",$requestArray,"updatePerson");
+            } catch (\Exception $e) {
+                $this->error = $e->getMessage();
+                return (false);
+            }
+        }
+
+        // search only 
+        if ($bMode == 'search') {
+            $requestArray['requestConfig']['saveAction'] = 'DONT_SAVE';
+            try {
+                $result = $this->SoapCall("epix",$requestArray,"requestMPIWithConfig");
             } catch (\Exception $e) {
                 $this->error = $e->getMessage();
                 return (false);

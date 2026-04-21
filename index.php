@@ -575,7 +575,11 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
   // import mode
   // ================================================================================================
   if ($sMode == 'import' && PseudoService::isAllowed('import')) {
-      
+      // search only?
+      $bImportSearch = false;
+      if (isset($_POST['import_search'])) {
+        $bImportSearch = true;
+      }
       // check: is file uploaded?
       if (is_array($_FILES['file_upload']) && $_FILES['file_upload']['error'] == UPLOAD_ERR_OK) {
           $aUploadedFile = $_FILES['file_upload'];
@@ -673,7 +677,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                         strlen($aRow['extID']) == 0 &&
                         strlen($aRow['SAP-ID']) == 0) {
                       
-                        $aResult = $oPseudoService->requestMPI($aRow);
+                        $aResult = $oPseudoService->requestMPI($aRow, $bImportSearch);
                         if (!is_array($aResult)) {
                             $aCSV[$i]['error'] = $oPseudoService->getError();
                             continue;
@@ -684,7 +688,7 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       $ishId = ltrim($aRow['SAP-ID'],'0');
 
                       // create / get MPI with SAP-ID
-                      $aResult = $oSAPPatientSearch->requestMPI_SAP($ishId, $aRow);
+                      $aResult = $oSAPPatientSearch->requestMPI_SAP($ishId, $aRow, $bImportSearch);
                       if (!is_array($aResult)) {
                           $aCSV[$i]['error'] = $oSAPPatientSearch->getError();
                           continue;
@@ -699,6 +703,14 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                       $mpiId_create = $aResult['return']['person']['mpiId']['value'];
                   } else {
                       $mpiId_create = $aResult['mpiId']['value'];
+                  }
+                  if (isset($aResult['return']['matchStatus'])) {
+                      $matchStatus = $aResult['return']['matchStatus'];
+                  }
+
+                  if ($bImportSearch) {
+                    $aCSV[$i]['imported'] = $matchStatus;
+                    continue;
                   }
 
                   /*
@@ -1486,6 +1498,12 @@ if ($sMode == 'import' && PseudoService::isAllowed('import')) { ?>
         <div class="col-sm-5">
             <label for="file_upload"><?php echo ($module->tt('import_csv')); ?></label>
             <input type="file" id="file_upload" name="file_upload"> 
+        </div>
+      </div>
+      <div class="form-group row">
+        <div class="col-sm-5">
+            <label for="import_search"><?php echo ($module->tt('import_search')); ?></label>
+            <input type="checkbox" id="import_search" name="import_search" value="1" /> 
         </div>
       </div>
       <div class="form-group row">

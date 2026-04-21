@@ -93,7 +93,7 @@ class SAPPatientSearch extends PseudoService {
     * @access  public
     * @return array E-PIX data
     */
-    public function requestMPI_SAP($ish_id, $paCustom) {
+    public function requestMPI_SAP($ish_id, $paCustom, $bSearchOnly = false) {
         // return if ISH-ID is empty
         if (strlen($ish_id) == 0) {
             return (false);
@@ -136,6 +136,16 @@ class SAPPatientSearch extends PseudoService {
 
         } catch (\Exception $e) {
             $bMode = 'insert';
+        }
+        
+        if ($bSearchOnly) {
+            if ($bMode == 'insert') {        
+                $result['return']['matchStatus'] = 'NO_MATCH';
+            }
+            if ($bMode == 'update') {        
+                $result['return']['matchStatus'] = 'PERFECT_MATCH';
+            }
+            return ($result);
         }
 
         // search in SAP for ISH-ID
