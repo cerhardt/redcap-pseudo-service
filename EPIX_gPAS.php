@@ -315,6 +315,10 @@ class EPIX_gPAS extends PseudoService {
 
         // search only 
         if ($bMode == 'search') {
+            if ($this->getProjectSetting("use_dags") === true) {
+                $sDAG = $this->getProjectId() . ':' . $this->group_id;
+                $requestArray['identity']['value10'] = '|'.$sDAG.'|';
+            }
             $requestArray['requestConfig']['saveAction'] = 'DONT_SAVE';
             try {
                 $result = $this->SoapCall("epix",$requestArray,"requestMPIWithConfig");

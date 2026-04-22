@@ -700,17 +700,15 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
 
                   // align arrays
                   $mpiId_create = '';
-                  if (isset($aResult['return']['person']['mpiId']['value'])) {
+                  if (isset($aResult['return']['person'])) {
                       $mpiId_create = $aResult['return']['person']['mpiId']['value'];
                   } elseif (isset($aResult['mpiId']['value'])) {
                       $mpiId_create = $aResult['mpiId']['value'];
                   }
+                  // search mode: MPI NO_MATCH
                   if ($mpiId_create == '-1') $mpiId_create = '';
+                  $matchStatus = $aResult['return']['matchStatus'];
 
-                  if ($bImportSearch && strlen($mpiId_create) == 0) {
-                      $aCSV[$i]['imported'] = 'NO_MATCH';
-                      continue;
-                  }
                   /*
                   if ($matchStatus == 'NO_MATCH' || $matchStatus == 'POSSIBLE_MATCH') {
                       Logging::logEvent('', $module->getModuleName(), "OTHER", '', $mpiId_create, "MPI created");
@@ -718,11 +716,12 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                   */ 
                   // does psn already exist?
                   $sPSNTmp = $oPseudoService->getPseudonymFor($mpiId_create);
+
                   if ($bImportSearch) {
                       if (!$sPSNTmp) {
                         $aCSV[$i]['imported'] = 'NO_MATCH';
                       } else {
-                        $aCSV[$i]['imported'] = 'MATCH';
+                        $aCSV[$i]['imported'] = $matchStatus;
                       }
                       continue;
                   }

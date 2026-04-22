@@ -138,9 +138,8 @@ class SAPPatientSearch extends PseudoService {
             $bMode = 'insert';
         }
 
-        // search only
-        if ($bSearchOnly) {
-            return ($result);
+        if ($bSearchOnly == true) {
+            $bMode = 'search';
         }
 
         // search in SAP for ISH-ID
@@ -208,6 +207,21 @@ class SAPPatientSearch extends PseudoService {
                         }
                     }
                 }
+            }
+
+            if ($bMode == 'search') {
+                if ($this->getProjectSetting("use_dags") === true) {
+                    $sDAG = $oPseudoService->getProjectId().':'.$oPseudoService->group_id;
+                    $requestArray['identity']['value10'] = '|'.$sDAG.'|';
+                }
+                $requestArray['requestConfig']['saveAction'] = 'DONT_SAVE';
+                try {
+                    $result = $oPseudoService->SoapCall("epix",$requestArray,"requestMPIWithConfig");
+                } catch (\Exception $e) {
+                    $this->error = $e->getMessage();
+                    return (false);
+                }
+                return ($result);
             }
 
             // request MPI from E-PIX with data from SAP
@@ -337,7 +351,7 @@ class SAPPatientSearch extends PseudoService {
                         return (false);
                     }
                 }
-            }
+            }            
 
             // return data from E-PIX
             return ($result);
