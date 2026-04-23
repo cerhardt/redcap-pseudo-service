@@ -1872,7 +1872,7 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('export') && $oPseudoServi
                   <td colspan="3">'.$aDubPersons[1]['birthDate'].'</td>
                 </tr>
                 <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>Land</td>
+                  <td>'.$module->tt('country').'</td>
                   <td colspan="3">'.$aDubPersons[0]['country'].'</td>
                   <td>&nbsp;&nbsp;</td>
                   <td colspan="3">'.$aDubPersons[1]['country'].'</td>
