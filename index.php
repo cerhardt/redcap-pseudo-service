@@ -1795,126 +1795,129 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('export') && $oPseudoServi
                 $aIntDubletten[] = $aDubEntry;
            }
       }
-
-      print ('
-      <form style="max-width:700px;" method="post" action="'.$module->moduleIndex.'">      
-      <table class="table table-hover" style="max-width:700px;" id="dubletten-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>'.$module->tt('last_name').'</th>
-              <th>'.$module->tt('first_name').'</th>
-              <th>'.$module->tt('birthdate').'</th>
-              <th></th>
-              <th>'.$module->tt('last_name').'</th>
-              <th>'.$module->tt('first_name').'</th>
-              <th>'.$module->tt('birthdate').'</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>');
-
-      foreach($aIntDubletten as $aDubEntry) {
-          $aDubPersons = array();
-          for($i=0;$i<=1;$i++) {
-              if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['birthDate'])) {
-                  $aTmp = explode("T",$aDubEntry['matchingMPIIdentities'][$i]['identity']['birthDate']);
-                  $aDubPersons[$i]['birthDate'] = \DateTimeRC::format_user_datetime($aTmp[0], 'Y-M-D_24', 'D.M.Y_24');
-              }
-              if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['firstName'])) {
-                  $aDubPersons[$i]['firstName'] = $aDubEntry['matchingMPIIdentities'][$i]['identity']['firstName'];
-              }
-              if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['gender'])) {
-                  $aDubPersons[$i]['gender'] = $oPseudoService->aGender[$aDubEntry['matchingMPIIdentities'][$i]['identity']['gender']];
-              }
-              if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['lastName'])) {
-                  $aDubPersons[$i]['lastName'] = $aDubEntry['matchingMPIIdentities'][$i]['identity']['lastName'];
-              }
-              if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['contacts']['country'])) {
-                  $aDubPersons[$i]['country'] = $aDubEntry['matchingMPIIdentities'][$i]['identity']['contacts']['country'];
-              }
-              $aDubPersons[$i]['psn'] = $oPseudoService->getPseudonymFor($aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value']);
-
-              $aDubPersons[$i]['value'] = $aDubEntry['linkId'].'+'.$aDubEntry['matchingMPIIdentities'][$i]['identity']['identityId'];
-              if ($oPseudoService->getProjectSetting("use_dags") === true) {
-                  $aDubPersons[$i]['value'] .= '+'.$aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value'].'+'.$aDubEntry['matchingMPIIdentities'][1-$i]['identity']['value10'];
-                  $aDubPersons[$i]['dag'] = $aDubEntry['matchingMPIIdentities'][$i]['dag'];
-              }
+      if (count($aIntDubletten) > 0) {
+          if (strlen($module->getProjectSetting("doublets_header")) > 0) {
+            print ($module->getProjectSetting("doublets_header"));
           }
-          $sCreated_date = date('d.m.Y H:i:s', strtotime($aDubEntry['possibleMatchCreated']));
           print ('
+          <form style="max-width:700px;" method="post" action="'.$module->moduleIndex.'">      
+          <table class="table table-hover" style="max-width:700px;" id="dubletten-table">
+              <thead>
                 <tr>
-                  <td>'.$sCreated_date.'</td>
-                  <td>'.$aDubPersons[0]['firstName'].'</td>
-                  <td>'.$aDubPersons[0]['lastName'].'</td>
-                  <td>'.$aDubPersons[0]['birthDate'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td>'.$aDubPersons[1]['firstName'].'</td>
-                  <td>'.$aDubPersons[1]['lastName'].'</td>
-                  <td>'.$aDubPersons[1]['birthDate'].'</td>
-                  <th class="codebook-form-header" data-form-name="'.$aDubEntry['linkId'].'"></th>
-                </tr>');
-          if ($oPseudoService->getProjectSetting("use_dags") === true) {
-            print ('                
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>DAG</td>
-                  <td colspan="3">'.$aDubPersons[0]['dag'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td colspan="3">'.$aDubPersons[1]['dag'].'</td>
-                </tr>');
+                  <th></th>
+                  <th>'.$module->tt('last_name').'</th>
+                  <th>'.$module->tt('first_name').'</th>
+                  <th>'.$module->tt('birthdate').'</th>
+                  <th></th>
+                  <th>'.$module->tt('last_name').'</th>
+                  <th>'.$module->tt('first_name').'</th>
+                  <th>'.$module->tt('birthdate').'</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>');
+
+          foreach($aIntDubletten as $aDubEntry) {
+              $aDubPersons = array();
+              for($i=0;$i<=1;$i++) {
+                  if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['birthDate'])) {
+                      $aTmp = explode("T",$aDubEntry['matchingMPIIdentities'][$i]['identity']['birthDate']);
+                      $aDubPersons[$i]['birthDate'] = \DateTimeRC::format_user_datetime($aTmp[0], 'Y-M-D_24', 'D.M.Y_24');
+                  }
+                  if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['firstName'])) {
+                      $aDubPersons[$i]['firstName'] = $aDubEntry['matchingMPIIdentities'][$i]['identity']['firstName'];
+                  }
+                  if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['gender'])) {
+                      $aDubPersons[$i]['gender'] = $oPseudoService->aGender[$aDubEntry['matchingMPIIdentities'][$i]['identity']['gender']];
+                  }
+                  if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['lastName'])) {
+                      $aDubPersons[$i]['lastName'] = $aDubEntry['matchingMPIIdentities'][$i]['identity']['lastName'];
+                  }
+                  if (!is_array($aDubEntry['matchingMPIIdentities'][$i]['identity']['contacts']['country'])) {
+                      $aDubPersons[$i]['country'] = $aDubEntry['matchingMPIIdentities'][$i]['identity']['contacts']['country'];
+                  }
+                  $aDubPersons[$i]['psn'] = $oPseudoService->getPseudonymFor($aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value']);
+
+                  $aDubPersons[$i]['value'] = $aDubEntry['linkId'].'+'.$aDubEntry['matchingMPIIdentities'][$i]['identity']['identityId'];
+                  if ($oPseudoService->getProjectSetting("use_dags") === true) {
+                      $aDubPersons[$i]['value'] .= '+'.$aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value'].'+'.$aDubEntry['matchingMPIIdentities'][1-$i]['identity']['value10'];
+                      $aDubPersons[$i]['dag'] = $aDubEntry['matchingMPIIdentities'][$i]['dag'];
+                  }
+              }
+              $sCreated_date = date('d.m.Y H:i:s', strtotime($aDubEntry['possibleMatchCreated']));
+              print ('
+                    <tr>
+                      <td>'.$sCreated_date.'</td>
+                      <td>'.$aDubPersons[0]['firstName'].'</td>
+                      <td>'.$aDubPersons[0]['lastName'].'</td>
+                      <td>'.$aDubPersons[0]['birthDate'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td>'.$aDubPersons[1]['firstName'].'</td>
+                      <td>'.$aDubPersons[1]['lastName'].'</td>
+                      <td>'.$aDubPersons[1]['birthDate'].'</td>
+                      <th class="codebook-form-header" data-form-name="'.$aDubEntry['linkId'].'"></th>
+                    </tr>');
+              if ($oPseudoService->getProjectSetting("use_dags") === true) {
+                print ('                
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td>DAG</td>
+                      <td colspan="3">'.$aDubPersons[0]['dag'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td colspan="3">'.$aDubPersons[1]['dag'].'</td>
+                    </tr>');
+              }
+              print ('
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td>PSN</td>
+                      <td colspan="3">'.$aDubPersons[0]['psn'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td colspan="3">'.$aDubPersons[1]['psn'].'</td>
+                    </tr>
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td>'.$module->tt('first_name').'</td>
+                      <td colspan="3">'.$aDubPersons[0]['firstName'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td colspan="3">'.$aDubPersons[1]['firstName'].'</td>
+                    </tr>
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td>'.$module->tt('last_name').'</td>
+                      <td colspan="3">'.$aDubPersons[0]['lastName'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td colspan="3">'.$aDubPersons[1]['lastName'].'</td>
+                    </tr>
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td>'.$module->tt('gender').'</td>
+                      <td colspan="3">'.$aDubPersons[0]['gender'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td colspan="3">'.$aDubPersons[1]['gender'].'</td>
+                    </tr>
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td>'.$module->tt('birthdate').'</td>
+                      <td colspan="3">'.$aDubPersons[0]['birthDate'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td colspan="3">'.$aDubPersons[1]['birthDate'].'</td>
+                    </tr>
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td>'.$module->tt('country').'</td>
+                      <td colspan="3">'.$aDubPersons[0]['country'].'</td>
+                      <td>&nbsp;&nbsp;</td>
+                      <td colspan="3">'.$aDubPersons[1]['country'].'</td>
+                    </tr>
+                    <tr data-form="'.$aDubEntry['linkId'].'">
+                      <td></td>
+                      <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[0]['value'].'">'.$module->tt('keep').'</button></td>
+                      <td><button type="submit" class="btn btn-primaryrc d-print-none" name="removePossibleMatch" value="'.$aDubEntry['linkId'].'">'.$module->tt('keep_both').'</button></td>
+                      <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[1]['value'].'">'.$module->tt('keep').'</button></td>
+                    </tr>
+                    ');
+          
           }
           print ('
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>PSN</td>
-                  <td colspan="3">'.$aDubPersons[0]['psn'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td colspan="3">'.$aDubPersons[1]['psn'].'</td>
-                </tr>
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>'.$module->tt('first_name').'</td>
-                  <td colspan="3">'.$aDubPersons[0]['firstName'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td colspan="3">'.$aDubPersons[1]['firstName'].'</td>
-                </tr>
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>'.$module->tt('last_name').'</td>
-                  <td colspan="3">'.$aDubPersons[0]['lastName'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td colspan="3">'.$aDubPersons[1]['lastName'].'</td>
-                </tr>
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>'.$module->tt('gender').'</td>
-                  <td colspan="3">'.$aDubPersons[0]['gender'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td colspan="3">'.$aDubPersons[1]['gender'].'</td>
-                </tr>
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>'.$module->tt('birthdate').'</td>
-                  <td colspan="3">'.$aDubPersons[0]['birthDate'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td colspan="3">'.$aDubPersons[1]['birthDate'].'</td>
-                </tr>
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td>'.$module->tt('country').'</td>
-                  <td colspan="3">'.$aDubPersons[0]['country'].'</td>
-                  <td>&nbsp;&nbsp;</td>
-                  <td colspan="3">'.$aDubPersons[1]['country'].'</td>
-                </tr>
-                <tr data-form="'.$aDubEntry['linkId'].'">
-                  <td></td>
-                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[0]['value'].'">'.$module->tt('keep').'</button></td>
-                  <td><button type="submit" class="btn btn-primaryrc d-print-none" name="removePossibleMatch" value="'.$aDubEntry['linkId'].'">'.$module->tt('keep_both').'</button></td>
-                  <td colspan="3" style="text-align: center"><button type="submit" class="btn btn-primaryrc d-print-none" name="assignIdentity" value="'.$aDubPersons[1]['value'].'">'.$module->tt('keep').'</button></td>
-                </tr>
-                ');
-      
-      }
-      print ('
-          </tbody>
-        </table>
-        <input type="hidden" name="mode" value="dubletten">
-        </form>');
-      
+              </tbody>
+            </table>
+            <input type="hidden" name="mode" value="dubletten">
+            </form>');
+      }      
 }
 
 // ================================================================================================

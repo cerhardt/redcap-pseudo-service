@@ -832,6 +832,16 @@
         },
 
         {
+            "key": "doublets_header",
+            "name": "help text for doublet resolution",
+            "type": "rich-text",
+                "branchingLogic": {
+                    "field": "project_custom_settings",
+                    "value": "true"
+                }
+        },
+
+        {
              "key": "cust_vars_title",
              "name": "<p style='font-size:large'>Custom Fields Settings</p>",
              "type": "descriptive",
