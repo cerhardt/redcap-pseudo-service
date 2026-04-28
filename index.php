@@ -304,7 +304,9 @@ if (count($_POST) > 0 && isset($_POST['submit'])) {
                     Logging::logEvent('', $module->getModuleName(), "OTHER", '', $sPSN, "PSN retrieved");
                 }
             }
-          } 
+          } else {
+              $oPseudoService->setError($module->tt('required_fields'));          
+          }
       }  
   
   } // create
@@ -1262,7 +1264,6 @@ if ($sMode == 'create'
 
     if ($oPseudoService->manual_edit === true || strlen($iISH_ID_ENC) > 0) { 
 
-        $aIsoCodes = PseudoService::csv_to_array(dirname(__FILE__).'/german-iso-3166.csv');
         if (!isset($aPost['country'])) {
             $aPost['country'] = 'DE';
         }
@@ -1299,10 +1300,10 @@ if ($sMode == 'create'
                   if ($sKey == $aPost['gender']) {
                     $sSel = ' checked="checked"';
                   }
-                  echo ('<label class="radio-inline"><input type="radio" name="gender" value="'.$sKey.'"'.$sSel.$sDis.'> '.$sVal.'</input>&nbsp;&nbsp;</label>'."\n");
+                  echo ('<label class="radio-inline"><input type="radio" name="gender" value="'.$sKey.'"'.$sSel.$sDis.' required> '.$sVal.'</input>&nbsp;&nbsp;</label>'."\n");
               }
               ?>
-              
+
             </div>
           </div>
           <div class="form-group row">
@@ -1314,13 +1315,13 @@ if ($sMode == 'create'
           <div class="form-group row">
             <label for="firstName" class="col-sm-2 col-form-label"><?php echo $module->tt('first_name'); ?>*</label>
             <div class="col-sm-5">
-              <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $aPost['firstName']; ?>"<?php echo ($sDis); ?>>
+              <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo $aPost['firstName']; ?>"<?php echo ($sDis); ?> required>
             </div>
           </div>
           <div class="form-group row">
             <label for="lastName" class="col-sm-2 col-form-label"><?php echo $module->tt('last_name'); ?>*</label>
             <div class="col-sm-5">
-              <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo $aPost['lastName']; ?>"<?php echo ($sDis); ?>>
+              <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo $aPost['lastName']; ?>"<?php echo ($sDis); ?> required>
             </div>
           </div>
           <div class="form-group row">
@@ -1332,7 +1333,7 @@ if ($sMode == 'create'
           <div class="form-group row">
             <label for="birthDate" class="col-sm-2 col-form-label"><?php echo $module->tt('birthdate'); ?>*</label>
             <div class="col-sm-5">
-              <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $aPost['birthDate']; ?>"<?php echo ($sDis); ?>>
+              <input type="text" class="form-control" id="birthDate" name="birthDate" value="<?php echo $aPost['birthDate']; ?>"<?php echo ($sDis); ?> required>
             </div>
           </div>
           <div class="form-group row">
@@ -1364,12 +1365,12 @@ if ($sMode == 'create'
             <div class="col-sm-5">
             <select class="form-control" id="country" name="country"<?php echo ($sDis); ?>>
                   <option value=""></option>
-              <?php foreach($aIsoCodes as $aTmp) {
+              <?php foreach($oPseudoService->aIsoCodes as $sIso => $sLabel) {
                   $sSel = '';
-                  if ($aTmp['iso'] == $aPost['country']) {
+                  if ($sIso == $aPost['country']) {
                     $sSel = ' selected="selected"';
                   }
-                  echo ('<option value="'.$aTmp['iso'].'"'.$sSel.'>'.$aTmp['label'].'</option>'."\n");
+                  echo ('<option value="'.$sIso.'"'.$sSel.'>'.$sLabel.'</option>'."\n");
               }
               ?>
               </select>
@@ -1758,11 +1759,22 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('export') && $oPseudoServi
           $bOtherDAG = false;
           for($i=0;$i<=1;$i++) {
               // DAGs: show only dublettes for current DAG
-              if ($oPseudoService->getProjectSetting("use_dags") === true && strlen($oPseudoService->group_id) > 0) {
-                  $dag_tmp = $aDubEntry['matchingMPIIdentities'][$i]['identity']['value10'];
-                  if (strpos($dag_tmp,'|'.$oPseudoService->getProjectId().':'.$oPseudoService->group_id.'|') === false) {
+              if ($oPseudoService->getProjectSetting("use_dags") === true) {
+                $dag_tmp = $aDubEntry['matchingMPIIdentities'][$i]['identity']['value10'];
+                if (strlen($oPseudoService->group_id) > 0) {
+                      if (strpos($dag_tmp,'|'.$oPseudoService->getProjectId().':'.$oPseudoService->group_id.'|') === false) {
                       $bOtherDAG = true;
-                  }
+                    }
+                }
+                $aTmpDAG = explode("|", trim($dag_tmp, ' |'));
+                $aDAG = array();
+                foreach($aTmpDAG as $sTmpDAG) {
+                   $aTmpDAG2 = explode(":", $sTmpDAG);
+                   if ($aTmpDAG2[0] == $oPseudoService->getProjectId()) {
+                       $aDAG[] = REDCap::getGroupNames(true, $aTmpDAG2[1]).' ('.$aTmpDAG2[1].')';
+                   }
+                }
+                $aDubEntry['matchingMPIIdentities'][$i]['dag'] = implode(", ",$aDAG);
               }
 
               $mpiId_tmp = $aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value'];
@@ -1826,6 +1838,7 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('export') && $oPseudoServi
               $aDubPersons[$i]['value'] = $aDubEntry['linkId'].'+'.$aDubEntry['matchingMPIIdentities'][$i]['identity']['identityId'];
               if ($oPseudoService->getProjectSetting("use_dags") === true) {
                   $aDubPersons[$i]['value'] .= '+'.$aDubEntry['matchingMPIIdentities'][$i]['mpiId']['value'].'+'.$aDubEntry['matchingMPIIdentities'][1-$i]['identity']['value10'];
+                  $aDubPersons[$i]['dag'] = $aDubEntry['matchingMPIIdentities'][$i]['dag'];
               }
           }
           $sCreated_date = date('d.m.Y H:i:s', strtotime($aDubEntry['possibleMatchCreated']));
@@ -1840,7 +1853,17 @@ if ($sMode == 'dubletten' && PseudoService::isAllowed('export') && $oPseudoServi
                   <td>'.$aDubPersons[1]['lastName'].'</td>
                   <td>'.$aDubPersons[1]['birthDate'].'</td>
                   <th class="codebook-form-header" data-form-name="'.$aDubEntry['linkId'].'"></th>
-                </tr>
+                </tr>');
+          if ($oPseudoService->getProjectSetting("use_dags") === true) {
+            print ('                
+                <tr data-form="'.$aDubEntry['linkId'].'">
+                  <td>DAG</td>
+                  <td colspan="3">'.$aDubPersons[0]['dag'].'</td>
+                  <td>&nbsp;&nbsp;</td>
+                  <td colspan="3">'.$aDubPersons[1]['dag'].'</td>
+                </tr>');
+          }
+          print ('
                 <tr data-form="'.$aDubEntry['linkId'].'">
                   <td>PSN</td>
                   <td colspan="3">'.$aDubPersons[0]['psn'].'</td>

@@ -17,9 +17,10 @@ class EPIX_gPAS extends PseudoService {
         );
         
         $this->aIsoCodes = array();
-        $aIsoTmp = PseudoService::csv_to_array(dirname(__FILE__).'/german-iso-3166.csv');        
-        foreach($aIsoTmp as $aTmp) {
-            $this->aIsoCodes[$aTmp['iso']] = $aTmp['label'];
+        $jsonString = file_get_contents(dirname(__FILE__).'/countries.json');
+        $jsonData = json_decode($jsonString, true);
+        foreach($jsonData as $aTmp) {
+            $this->aIsoCodes[$aTmp['code']] = $aTmp[$this->tt('lang')];
         }
         
         // HTML code for showing IDAT on pages with forms
