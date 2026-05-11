@@ -663,8 +663,9 @@ class PseudoService extends \ExternalModules\AbstractExternalModule {
                 $row = array_map('trim', $row);
                 if(!$header)
                     $header = $row;
-                else
+                elseif (count($header) == count($row)) {  
                     $data[] = array_combine($header, $row);
+                }
             }
             fclose($handle);
         }
